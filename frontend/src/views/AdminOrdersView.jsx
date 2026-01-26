@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { THEME } from '../styles/theme';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'https://oovoo-backend.onrender.com';
+const API_BASE = 'https://oovoo-beta1.onrender.com';
 
 export default function AdminOrdersView() {
     const [orders, setOrders] = useState([]);

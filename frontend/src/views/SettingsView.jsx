@@ -67,7 +67,7 @@ export default function SettingsView() {
       const { token } = JSON.parse(stored);
 
       try {
-        const res = await fetch('https://oovoo-backend.onrender.com/api/users/profile', {
+        const res = await fetch('https://oovoo-beta1.onrender.com/api/users/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error();
@@ -91,7 +91,7 @@ export default function SettingsView() {
         try {
           const stored = localStorage.getItem('oooVooo_user');
           const { token } = JSON.parse(stored);
-          const res = await fetch('https://oovoo-backend.onrender.com/api/orders/my-orders', {
+          const res = await fetch('https://oovoo-beta1.onrender.com/api/orders/my-orders', {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
@@ -115,7 +115,7 @@ export default function SettingsView() {
       const stored = localStorage.getItem('oooVooo_user');
       const { token } = JSON.parse(stored);
 
-      const res = await fetch('https://oovoo-backend.onrender.com/api/users/profile', {
+      const res = await fetch('https://oovoo-beta1.onrender.com/api/users/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -48,7 +48,7 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
                 currency: 'eur',
                 product_data: {
                     name: `${item.name} (${item.uniqueCode})`,
-                    images: [`https://oovoo-backend.onrender.com/schemes/${item.qrStyle}.png`],
+                    images: [`https://oovoo-beta1.onrender.com/schemes/${item.qrStyle}.png`],
                     description: `Méret: ${item.size || 'N/A'}`,
                 },
                 unit_amount: Math.round(parseFloat(item.price.replace(/[^0-9.]/g, '')) * 100), 

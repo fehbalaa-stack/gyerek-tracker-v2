@@ -88,7 +88,7 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                 <div className="flex items-center gap-6">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shadow-inner overflow-hidden">
                         {targetTracker ? (
-                            <img src={`https://oovoo-backend.onrender.com/schemes/${targetTracker.qrStyle}.png`} className="w-10 h-10 object-contain" alt="QR" />
+                            <img src={`https://oovoo-beta1.onrender.com/schemes/${targetTracker.qrStyle}.png`} className="w-10 h-10 object-contain" alt="QR" />
                         ) : (
                             <span className="text-2xl opacity-20">🔍</span>
                         )}

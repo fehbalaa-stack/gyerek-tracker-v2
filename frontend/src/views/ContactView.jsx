@@ -23,7 +23,7 @@ export default function ContactView({ setMode }) {
     setLoading(true);
     
     try {
-      const response = await fetch('https://oovoo-backend.onrender.com/api/contact/send', {
+      const response = await fetch('https://oovoo-beta1.onrender.com/api/contact/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

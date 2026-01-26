@@ -82,7 +82,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
   useEffect(() => {
     const fetchSchemes = async () => {
       try {
-        const res = await fetch('https://oovoo-backend.onrender.com/api/schemes');
+        const res = await fetch('https://oovoo-beta1.onrender.com/api/schemes');
         const data = await res.json();
         setSchemes(data);
         if (data.length > 0) {
@@ -123,7 +123,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
             return;
         }
 
-        const response = await fetch('https://oovoo-backend.onrender.com/api/trackers/add', {
+        const response = await fetch('https://oovoo-beta1.onrender.com/api/trackers/add', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -241,10 +241,10 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
                     {/* 🔥 ÚJ: SABLON ELŐNÉZET AZ ELŐLAPON */}
                     <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
                         <img 
-                          src={`https://oovoo-backend.onrender.com/schemes/${tracker.qrStyle || 'classic'}.png`}
+                          src={`https://oovoo-beta1.onrender.com/schemes/${tracker.qrStyle || 'classic'}.png`}
                           alt="Template"
                           className="absolute inset-0 w-full h-full object-contain z-10"
-                          onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'}
+                          onError={(e) => e.target.src = 'https://oovoo-beta1.onrender.com/schemes/classic.png'}
                         />
                         <div className="text-2xl z-20">
                           {tracker.icon || "📍"}
@@ -418,7 +418,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
                 </div>
                 <div className="w-48 h-48 flex items-center justify-center">
                   {selectedArtStyle ? (
-                    <img src={`https://oovoo-backend.onrender.com/schemes/${selectedArtStyle.id}.png`} alt="Preview" className="max-w-full max-h-full object-contain drop-shadow-xl" />
+                    <img src={`https://oovoo-beta1.onrender.com/schemes/${selectedArtStyle.id}.png`} alt="Preview" className="max-w-full max-h-full object-contain drop-shadow-xl" />
                   ) : (
                     <div className="text-slate-300 text-[10px] font-black uppercase tracking-widest">
                        {language === 'hu' ? 'Nincs választva' : 'Not selected'}

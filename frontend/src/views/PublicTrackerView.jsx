@@ -67,7 +67,7 @@ export default function PublicTrackerView({ code }) {
         const { latitude, longitude } = pos.coords;
         if (!latitude || !longitude || (latitude === 0 && longitude === 0)) return;
         
-        await axios.post('https://oovoo-backend.onrender.com/api/logs/log-public', {
+        await axios.post('https://oovoo-beta1.onrender.com/api/logs/log-public', {
           trackerId: trackerId.toString(),
           lat: Number(latitude),
           lng: Number(longitude),
@@ -83,7 +83,7 @@ export default function PublicTrackerView({ code }) {
   useEffect(() => {
     const initPage = async () => {
       try {
-        const res = await axios.get(`https://oovoo-backend.onrender.com/api/public/tracker/${code}`);
+        const res = await axios.get(`https://oovoo-beta1.onrender.com/api/public/tracker/${code}`);
         if (res.data && res.data.success) {
           const tData = res.data.tracker;
           // FONTOS: Mindig a valódi MongoDB _id-t használjuk a loghoz és chathoz
@@ -95,7 +95,7 @@ export default function PublicTrackerView({ code }) {
             if (realDbId) {
               sendSilentLog(realDbId);
               try {
-                const msgRes = await axios.get(`https://oovoo-backend.onrender.com/api/chat/${realDbId}`);
+                const msgRes = await axios.get(`https://oovoo-beta1.onrender.com/api/chat/${realDbId}`);
                 setMessages(msgRes.data || []);
                 setTimeout(scrollToBottom, 200);
               } catch (e) { console.warn("Üzenetek hiba"); }
@@ -110,7 +110,7 @@ export default function PublicTrackerView({ code }) {
 
   useEffect(() => {
     if (!tracker?._id) return;
-    const newSocket = io('https://oovoo-backend.onrender.com', { transports: ['websocket', 'polling'], withCredentials: true });
+    const newSocket = io('https://oovoo-beta1.onrender.com', { transports: ['websocket', 'polling'], withCredentials: true });
     newSocket.on('connect', () => { newSocket.emit('join_chat', tracker._id); });
     newSocket.on('receive_message', (msg) => {
       setMessages((prev) => prev.some(m => m._id === msg._id) ? prev : [...prev, msg]);
@@ -125,7 +125,7 @@ export default function PublicTrackerView({ code }) {
     const msgData = { trackerId: tracker._id, senderId: "Finder", senderType: 'finder', message: inputText };
     try {
       setInputText("");
-      await axios.post('https://oovoo-backend.onrender.com/api/chat/send', msgData);
+      await axios.post('https://oovoo-beta1.onrender.com/api/chat/send', msgData);
     } catch (err) { toast.error("Hiba küldéskor"); }
   };
 
