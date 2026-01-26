@@ -71,10 +71,10 @@ function AppContent() {
         if (!token) return;
 
         const [resTrackers, resLogs] = await Promise.all([
-          fetch('https://oovoo-backend.onrender.com/api/trackers/my-trackers', { 
+          fetch('https://oovoo-beta1.onrender.com/api/trackers/my-trackers', { 
             headers: { 'Authorization': `Bearer ${token}` } 
           }),
-          fetch('https://oovoo-backend.onrender.com/api/trackers/logs', { 
+          fetch('https://oovoo-beta1.onrender.com/api/trackers/logs', { 
             headers: { 'Authorization': `Bearer ${token}` } 
           })
         ]);
@@ -98,7 +98,7 @@ function AppContent() {
       const stored = localStorage.getItem('oooVooo_user');
       const { token } = JSON.parse(stored);
 
-      const res = await fetch(`https://oovoo-backend.onrender.com/api/trackers/${id}`, {
+      const res = await fetch(`https://oovoo-beta1.onrender.com/api/trackers/${id}`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json', 
@@ -125,7 +125,7 @@ function AppContent() {
     try {
       const stored = localStorage.getItem('oooVooo_user');
       const { token } = JSON.parse(stored);
-      await fetch(`https://oovoo-backend.onrender.com/api/trackers/${id}`, {
+      await fetch(`https://oovoo-beta1.onrender.com/api/trackers/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
