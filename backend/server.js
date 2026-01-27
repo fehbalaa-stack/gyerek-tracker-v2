@@ -27,17 +27,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 
+// --- KONFIGURÁCIÓ ---
+const allowedOrigins = ["https://oovoo-beta1.onrender.com", "http://localhost:5173"];
+
 // --- SOCKET.IO BEÁLLÍTÁS ---
 const io = new Server(server, {
   cors: { 
-    origin: ["https://oovoo-beta1.onrender.com", "http://localhost:5173"], 
+    origin: allowedOrigins, 
     methods: ['GET', 'POST'],
     credentials: true 
   }
 });
 
 app.use(cors({
-  origin: ["https://oovoo-beta1.onrender.com", "http://localhost:5173"],
+  origin: allowedOrigins,
   credentials: true
 }));
 
@@ -49,7 +52,7 @@ app.use((req, res, next) => {
 
 connectDB();
 
-// STRIPE WEBHOOK (express.json előtt)
+// STRIPE WEBHOOK (express.json előtt kötelező)
 app.post(
   '/api/orders/webhook', 
   express.raw({ type: 'application/json' }), 
@@ -58,16 +61,16 @@ app.post(
 
 app.use(express.json());
 
-// STATIKUS FÁJLOK
+// STATIKUS FÁJLOK (Sémák, QR kódok)
 app.use('/schemes', express.static(path.join(__dirname, 'public/schemes')));
 app.use('/qrcodes', express.static(path.join(__dirname, 'public/qrcodes')));
 
-// ADMIN GENERÁTOR - 🔥 JAVÍTVA: Átírva beta1-re
+// --- ADMIN & API FUNKCIÓK ---
+
 app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { uniqueCode } = req.params;
     const { styleId } = req.query;
-    // Itt is a béta címet kell használni a generáláshoz
     const scanUrl = `https://oovoo-beta1.onrender.com/scan/${uniqueCode}`;
     const buffer = await generateStyledQR(scanUrl, styleId, false);
     res.setHeader('Content-Disposition', `attachment; filename=PROD_${uniqueCode}.png`);
@@ -78,7 +81,6 @@ app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware
   }
 });
 
-// SÉMÁK LISTÁZÁSA
 app.get('/api/schemes', (req, res) => {
   const schemesDir = path.join(__dirname, 'public/schemes');
   if (!fs.existsSync(schemesDir)) {
@@ -116,7 +118,22 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes); 
 app.use('/api/logs', logRoutes); 
 
-// --- JAVÍTOTT, TISZTA SOCKET ESEMÉNYEK ---
+// --- FRONTEND KISZOLGÁLÁSA (PRODUCTION) ---
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../frontend/dist');
+  
+  app.use(express.static(frontendPath));
+
+  app.get('*', (req, res) => {
+    // Ha API hívás érkezik, amit nem talált meg a fenti API blokkban, ne küldjünk HTML-t
+    if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({ message: "API endpoint not found" });
+    }
+    res.sendFile(path.resolve(frontendPath, 'index.html'));
+  });
+}
+
+// --- SOCKET ESEMÉNYEK ---
 io.on('connection', (socket) => {
   console.log('📡 Socket connected:', socket.id);
 
@@ -140,8 +157,8 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Backend fut: http://localhost:${PORT}`);
+  console.log(`🚀 Backend fut a ${PORT}-es porton`);
   console.log(`💬 Chat rendszer aktív.`);
 });
