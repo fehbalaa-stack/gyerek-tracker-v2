@@ -12,14 +12,11 @@ export const register = async (req, res) => {
         const userExists = await User.findOne({ email });
         if (userExists) return res.status(400).json({ message: "Ez az email már foglalt!" });
 
-        // 🔥 JAVÍTÁS: Nem hashelünk itt kézzel! 
-        // A User.js modell pre-save hook-ja fogja ezt megtenni automatikusan a .save() hívásakor.
-        
         const newUser = new User({ 
             name, 
             email, 
             phoneNumber, 
-            password, // Sima szövegként adjuk át, a Modell hasheli le!
+            password, 
             language: language || 'hu'
         });
 
@@ -40,32 +37,43 @@ export const login = async (req, res) => {
         const identifier = req.body.email || req.body.phoneNumber;
         const password = req.body.password;
 
+        // Ellenőrizzük, hogy a környezeti változó létezik-e
+        if (!process.env.JWT_SECRET) {
+            console.error("❌ HIÁNYZIK A JWT_SECRET A RENDER BEÁLLÍTÁSOKBÓL!");
+            return res.status(500).json({ error: "Szerver konfigurációs hiba: JWT_SECRET hiányzik." });
+        }
+
         const user = await User.findOne({
             $or: [{ email: identifier }, { phoneNumber: identifier }]
         });
 
         if (!user) {
+            console.log("❌ LOGIN: Felhasználó nem található:", identifier);
             return res.status(401).json({ error: "Érvénytelen adatok!" });
         }
 
-        // 🔥 JAVÍTÁS: Használhatod a Modellbe írt matchPassword metódust is:
-        // const isMatch = await user.matchPassword(password);
-        // VAGY marad a bcrypt.compare, mindkettő jó, ha az adatbázisban csak egyszeres hash van.
         const isMatch = await bcrypt.compare(password, user.password);
         
         if (!isMatch) {
+            console.log("❌ LOGIN: Hibás jelszó:", identifier);
             return res.status(401).json({ error: "Érvénytelen adatok!" });
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        const userResponse = user.toObject();
-        delete userResponse.password;
-        
-        return res.status(200).json({ ...userResponse, token });
+        // Explicit módon állítjuk össze a választ, hogy ne legyen üres a response
+        return res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            language: user.language || 'hu',
+            role: user.role || 'user',
+            token: token
+        });
 
     } catch (error) {
         console.error("🔥 LOGIN KRITIKUS HIBA:", error.message);
-        return res.status(500).json({ error: "Szerver hiba." });
+        return res.status(500).json({ error: "Szerver hiba: " + error.message });
     }
 };
