@@ -117,7 +117,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trackers', trackerRoutes);
 app.use('/api/users', userRoutes); 
 app.use('/api/orders', orderRoutes); 
-2app.use('/api/public', publicRoutes); 
+app.use('/api/public', publicRoutes); 
 app.use('/api/chat', chatRoutes); 
 app.use('/api/contact', contactRoutes); 
 app.use('/api/logs', logRoutes); 
