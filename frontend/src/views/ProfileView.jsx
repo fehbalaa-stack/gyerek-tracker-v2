@@ -5,7 +5,8 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
 export default function ProfileView() {
-  const { user, language, updateLanguage, logout } = useAuth();
+  // JAVÍTVA: updateLanguage helyett a Context-ben létező updateGlobalLanguage-et használjuk
+  const { user, language, updateGlobalLanguage, logout } = useAuth();
   const t = translations[language] || translations.hu;
 
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -67,7 +68,8 @@ export default function ProfileView() {
         localStorage.setItem('oooVooo_user', JSON.stringify(userData));
       }
 
-      await updateLanguage(code);
+      // JAVÍTVA: A helyes függvényhívás
+      await updateGlobalLanguage(code);
       
       const successMsg = code === 'hu' ? 'Nyelv elmentve!' : code === 'de' ? 'Sprache gespeichert!' : 'Language saved!';
       toast.success(successMsg);
@@ -89,7 +91,7 @@ export default function ProfileView() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Frissítjük a LocalStorage-ot a küldött adatokkal (nem várjuk a hiányos szerver választ)
+      // Frissítjük a LocalStorage-ot a küldött adatokkal
       const stored = localStorage.getItem('oooVooo_user');
       if (stored) {
           const userData = JSON.parse(stored);
