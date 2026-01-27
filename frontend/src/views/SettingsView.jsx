@@ -58,7 +58,7 @@ export default function SettingsView() {
   const [profile, setProfile] = useState({
     name: '', email: '', phoneNumber: '', emergencyPhone: '',
     instagram: '', facebook: '', bio: '', language: 'hu',
-    showProfile: true, showEmergency: true // ÚJ CHECKBOX MEZŐK
+    showProfile: true, showEmergency: true 
   });
 
   const t = useMemo(() => translations[profile.language] || translations.hu, [profile.language]);
@@ -139,20 +139,10 @@ export default function SettingsView() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        
-        setProfile(prev => ({ 
-          ...prev, 
-          ...data,
-          phoneNumber: data.phoneNumber || '',
-          emergencyPhone: data.emergencyPhone || '',
-          instagram: data.instagram || '',
-          facebook: data.facebook || '',
-          bio: data.bio || ''
-        }));
-        
+        // A szerver 200 OK-val válaszolt, frissítjük a globális állapotot
         updateGlobalLanguage(profile.language); 
         
+        // Frissítjük a LocalStorage-ot a konzisztencia érdekében
         const updatedStorage = { ...userData, language: profile.language };
         localStorage.setItem('oooVooo_user', JSON.stringify(updatedStorage));
 
@@ -314,7 +304,6 @@ export default function SettingsView() {
 
               {activeTab === 'social' && (
                 <div className="space-y-8">
-                  {/* ÚJ CHECKBOX RENDSZER */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { id: 'showProfile', label: t.labelShowProfile, icon: '👁️' },
