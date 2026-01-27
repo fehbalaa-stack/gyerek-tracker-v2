@@ -5,10 +5,10 @@ import { Link } from "react-router-dom";
 export function TrackerCard({ tracker }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // 3. PONT: Sablon meghatározása (Tiszta QR sablon emoji nélkül)
+  // 3. PONT: Sablon meghatározása - TISZTA nézet, emoji nélkül a képen
   const qrStylePath = `/schemes/${tracker.qrStyle || 'classic'}.png`;
 
-  // Profil adatok ellenőrzése (szinkronban a ProfileView-val)
+  // Profil adatok ellenőrzése
   const missingName = !tracker.owner?.name;
   const missingPhone = !tracker.owner?.phoneNumber;
   const isMissingSomething = missingName || missingPhone;
@@ -29,35 +29,36 @@ export function TrackerCard({ tracker }) {
           damping: 15     
         }}
       >
-        {/* ELŐLAP - Tiszta QR Preview */}
+        {/* ELŐLAP - Tiszta QR Preview (Emoji nélkül a sablonon) */}
         <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 shadow-sm rounded-[2.5rem] p-6 flex items-center gap-5 transition-colors group-hover:border-emerald-100 overflow-hidden">
           
-          {/* QR PREVIEW (EMOJI NÉLKÜL) */}
-          <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-3xl border border-slate-100 shadow-inner">
+          {/* QR PREVIEW (CSAK A SÉMA) */}
+          <div className="relative w-24 h-24 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-3xl border border-slate-100 shadow-inner overflow-hidden">
             <img 
               src={qrStylePath} 
               alt="QR Template" 
               className="absolute inset-0 w-full h-full object-contain p-2"
               onError={(e) => e.target.src = '/schemes/classic.png'} 
             />
-            {/* Itt már nincs ott az emoji! */}
+            {/* Itt már nincs ott az emoji a kép felett! */}
           </div>
 
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center gap-2">
-               <span className="text-xl">{tracker.icon || "📍"}</span>
+               {/* Az emoji csak itt, azonosítóként szerepel a név mellett */}
+               <span className="text-xl shrink-0">{tracker.icon || "📍"}</span>
                <h3 className="font-black text-lg text-slate-800 tracking-tight truncate">{tracker.name}</h3>
             </div>
             
             <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2 h-2 rounded-full animate-pulse shadow-sm ${isMissingSomething ? 'bg-amber-400' : 'bg-emerald-500 shadow-emerald-500/50'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${isMissingSomething ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`}></span>
               <p className={`text-[9px] font-black tracking-[0.1em] uppercase ${isMissingSomething ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {isMissingSomething ? 'Beállítás szükséges' : 'Biztonságban'}
               </p>
             </div>
 
             <div className="mt-4 flex flex-col gap-0.5">
-               <span className="text-[8px] text-slate-300 font-black uppercase tracking-widest italic">Kód:</span>
+               <span className="text-[8px] text-slate-300 font-black uppercase tracking-widest italic tracking-tighter">Azonosító:</span>
                <span className="text-[10px] text-slate-500 font-bold uppercase truncate tracking-widest">
                  {tracker.uniqueCode}
                </span>
@@ -65,7 +66,7 @@ export function TrackerCard({ tracker }) {
           </div>
         </div>
 
-        {/* HÁTLAP - Gyors állapot és adatok */}
+        {/* HÁTLAP */}
         <div 
           className="absolute inset-0 backface-hidden bg-slate-900 border border-emerald-400/30 rounded-[2.5rem] flex flex-col items-center justify-center p-6 shadow-xl"
           style={{ transform: "rotateY(180deg)" }}
@@ -85,7 +86,7 @@ export function TrackerCard({ tracker }) {
               <Link 
                 to="/profile" 
                 onClick={(e) => e.stopPropagation()}
-                className="text-[9px] text-red-500 font-black uppercase bg-red-500/10 px-3 py-1 rounded-full animate-pulse border border-red-500/20"
+                className="text-[9px] text-red-500 font-black uppercase bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20 animate-pulse"
               >
                 Hiányzó profil adatok ↗
               </Link>
@@ -93,7 +94,7 @@ export function TrackerCard({ tracker }) {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-[9px] text-emerald-400 font-black uppercase tracking-widest">
-                  Aktív és látható
+                  Aktív
                 </span>
               </div>
             )}
@@ -101,7 +102,7 @@ export function TrackerCard({ tracker }) {
           
           <div className="mt-3 text-center">
             <p className="text-[10px] text-white/40 font-bold tracking-tighter uppercase italic">
-              oooVooo System v2
+              oooVooo Secure Device
             </p>
           </div>
         </div>
