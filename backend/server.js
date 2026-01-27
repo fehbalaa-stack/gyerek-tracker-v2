@@ -28,7 +28,11 @@ const app = express();
 const server = http.createServer(app);
 
 // --- KONFIGURÁCIÓ ---
-const allowedOrigins = ["https://oovoo-beta1.onrender.com", "http://localhost:5173"];
+const allowedOrigins = [
+  "https://oovoo-beta1.onrender.com", 
+  "https://oovoo-backend.onrender.com", 
+  "http://localhost:5173"
+];
 
 // --- SOCKET.IO BEÁLLÍTÁS ---
 const io = new Server(server, {
@@ -113,23 +117,30 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trackers', trackerRoutes);
 app.use('/api/users', userRoutes); 
 app.use('/api/orders', orderRoutes); 
-app.use('/api/public', publicRoutes); 
+2app.use('/api/public', publicRoutes); 
 app.use('/api/chat', chatRoutes); 
 app.use('/api/contact', contactRoutes); 
 app.use('/api/logs', logRoutes); 
 
 // --- FRONTEND KISZOLGÁLÁSA (PRODUCTION) ---
 if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, '../frontend/dist');
+  const frontendPath = path.resolve(__dirname, '..', 'frontend', 'dist');
   
+  console.log("📂 Keresem a frontendet itt:", frontendPath);
+
   app.use(express.static(frontendPath));
 
   app.get('*', (req, res) => {
-    // Ha API hívás érkezik, amit nem talált meg a fenti API blokkban, ne küldjünk HTML-t
     if (req.originalUrl.startsWith('/api')) {
         return res.status(404).json({ message: "API endpoint not found" });
     }
-    res.sendFile(path.resolve(frontendPath, 'index.html'));
+    
+    const indexPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(500).send("Hiba: A frontend build (index.html) nem található a szerveren!");
+    }
   });
 }
 
