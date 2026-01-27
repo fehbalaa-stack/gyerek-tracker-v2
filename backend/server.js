@@ -28,25 +28,32 @@ const app = express();
 const server = http.createServer(app);
 
 // --- KONFIGURÁCIÓ ---
+// Hozzáadtuk a metódusokat és a pontosabb origókat a 200 OK/Catch hiba elkerülésére
 const allowedOrigins = [
-  "https://oovoo-backend.onrender.com", 
   "https://oovoo-backend.onrender.com", 
   "http://localhost:5173"
 ];
 
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Engedélyezzük, ha az origin benne van a listában, vagy ha nincs origin (pl. mobil/azonos szerver kérés)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS hiba: Az origo nem engedélyezett.'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // --- SOCKET.IO BEÁLLÍTÁS ---
 const io = new Server(server, {
-  cors: { 
-    origin: allowedOrigins, 
-    methods: ['GET', 'POST'],
-    credentials: true 
-  }
+  cors: corsOptions
 });
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 // Req.io átadása a route-oknak
 app.use((req, res, next) => {
@@ -124,13 +131,15 @@ app.use('/api/logs', logRoutes);
 
 // --- FRONTEND KISZOLGÁLÁSA (PRODUCTION) ---
 if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.resolve(__dirname, '..', 'frontend', 'dist');
+  // Javított path: Renderen a gyökérből indulva keressük a dist-et
+  const frontendPath = path.join(__dirname, '..', 'frontend', 'dist');
   
-  console.log("📂 Keresem a frontendet itt:", frontendPath);
+  console.log("📂 Frontend path ellenőrzése:", frontendPath);
 
   app.use(express.static(frontendPath));
 
   app.get('*', (req, res) => {
+    // Ha API hívás tévedt ide, ne küldjük vissza az index.html-t (ez okozza a catch hibát!)
     if (req.originalUrl.startsWith('/api')) {
         return res.status(404).json({ message: "API endpoint not found" });
     }
@@ -139,7 +148,7 @@ if (process.env.NODE_ENV === 'production') {
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(500).send("Hiba: A frontend build (index.html) nem található a szerveren!");
+      res.status(500).send("Hiba: index.html nem található!");
     }
   });
 }
@@ -171,5 +180,4 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Backend fut a ${PORT}-es porton`);
-  console.log(`💬 Chat rendszer aktív.`);
 });
