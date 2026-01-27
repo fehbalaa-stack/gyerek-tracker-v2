@@ -49,42 +49,62 @@ export default function ProfileView() {
     return stored ? JSON.parse(stored).token : null;
   };
 
+  // NYELVMENTÉS JAVÍTVA
   const handleLanguageChange = async (code) => {
     try {
       const token = getToken();
       if (!token) return;
-      // JAVÍTVA: beta1 URL használata
-      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', { language: code }, { headers: { Authorization: `Bearer ${token}` } });
+
+      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', 
+        { language: code }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       const stored = localStorage.getItem('oooVooo_user');
       if (stored) {
         const userData = JSON.parse(stored);
         userData.language = code;
         localStorage.setItem('oooVooo_user', JSON.stringify(userData));
       }
+
       await updateLanguage(code);
-      toast.success(code === 'hu' ? 'Nyelv elmentve!' : code === 'de' ? 'Sprache gespeichert!' : 'Language saved!');
+      
+      const successMsg = code === 'hu' ? 'Nyelv elmentve!' : code === 'de' ? 'Sprache gespeichert!' : 'Language saved!';
+      toast.success(successMsg);
     } catch (err) {
+      console.error("Nyelvmentési hiba:", err);
       toast.error(language === 'hu' ? 'Hiba a mentés során' : 'Error saving language');
     }
   };
 
+  // PROFIL FRISSÍTÉS JAVÍTVA (Üres mezők és téves hibaüzenet ellen)
   const handleProfileUpdate = async () => {
     setIsUpdating(true);
     try {
-      // JAVÍTVA: Nyelv beküldése a profil adatokkal együtt és beta1 URL
+      const token = getToken();
       const updatePayload = { ...profileData, language };
-      const res = await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', updatePayload, { headers: { Authorization: `Bearer ${getToken()}` } });
+
+      const res = await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', 
+        updatePayload, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Frissítjük a LocalStorage-ot a küldött adatokkal (nem várjuk a hiányos szerver választ)
       const stored = localStorage.getItem('oooVooo_user');
-      if (stored && res.data) {
+      if (stored) {
           const userData = JSON.parse(stored);
-          const updatedData = { ...userData, ...res.data };
-          localStorage.setItem('oooVooo_user', JSON.stringify(updatedData));
+          const updatedLocalUser = { ...userData, ...profileData };
+          localStorage.setItem('oooVooo_user', JSON.stringify(updatedLocalUser));
       }
+
       toast.success(language === 'hu' ? 'Profil sikeresen frissítve!' : 'Profile updated!');
       setShowProfileEdit(false);
-      setTimeout(() => window.location.reload(), 800);
+      
+      // Rövid idő után újratöltünk, hogy a globális state szinkronba kerüljön
+      setTimeout(() => window.location.reload(), 500);
     } catch (err) {
-      toast.error('Hiba a profil frissítésekor');
+      console.error("Profil frissítési hiba:", err);
+      toast.error(language === 'hu' ? 'Hiba a profil frissítésekor' : 'Error updating profile');
     } finally {
       setIsUpdating(false);
     }
@@ -112,10 +132,8 @@ export default function ProfileView() {
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20 px-4">
       
-      {/* FŐ KÁRTYA */}
       <section className="bg-white border border-emerald-50 rounded-[2.5rem] p-8 md:p-12 shadow-sm relative z-10">
         
-        {/* PROFIL FEJLÉC */}
         <div className="flex flex-col items-center mb-12">
           <div className="relative mb-6">
             <div className="w-28 h-28 bg-emerald-50 rounded-full flex items-center justify-center text-5xl shadow-inner border border-emerald-100">
@@ -131,7 +149,6 @@ export default function ProfileView() {
           <p className="text-emerald-600 text-[10px] font-black tracking-[0.3em] mt-2 uppercase">oooVooo Member</p>
         </div>
 
-        {/* --- 1. PROFIL ADATOK --- */}
         <div className="space-y-6 mb-12">
           <div className="flex justify-between items-center px-2">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Profil Információk</p>
@@ -176,11 +193,8 @@ export default function ProfileView() {
           )}
         </div>
 
-        {/* --- 2. BIZTONSÁG SZEKCIÓ (Email/Password) --- */}
         <div className="space-y-4 mb-12">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">Fiók Biztonság</p>
-            
-            {/* Email */}
             <div className="p-6 rounded-[2rem] border border-slate-100 bg-slate-50/50">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Email Cím</span>
@@ -198,7 +212,6 @@ export default function ProfileView() {
               )}
             </div>
 
-            {/* Password */}
             <div className="p-6 rounded-[2rem] border border-slate-100 bg-slate-50/50">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Jelszó</span>
@@ -217,7 +230,6 @@ export default function ProfileView() {
             </div>
         </div>
 
-        {/* --- 3. NYELVVÁLASZTÓ --- */}
         <div className="space-y-6 pt-10 border-t border-emerald-50">
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">Nyelvválasztás</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -239,7 +251,6 @@ export default function ProfileView() {
         </div>
       </section>
 
-      {/* KIJELENTKEZÉS */}
       <button 
         onClick={logout}
         className="w-full bg-red-50 text-red-500 py-6 rounded-[2.5rem] font-black uppercase text-[10px] tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all shadow-sm shadow-red-100 border border-red-100"
