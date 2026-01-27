@@ -15,7 +15,8 @@ const translations = {
     btnSaving: "ADATOK FRISSÍTÉSE...", msgLoadError: "Profil betöltése sikertelen",
     msgSaveSuccess: "Változtatások mentve az adatbázisba!", msgSaveError: "Hiba a mentés során",
     orderEmpty: "Még nincs leadott rendelésed.", orderId: "Rendelésszám", statusPending: "Várakozik",
-    statusProcessing: "Gyártás alatt", statusShipped: "Kiszállítva"
+    statusProcessing: "Gyártás alatt", statusShipped: "Kiszállítva",
+    labelShowProfile: "Profil megjelenítése a megtalálónak", labelShowEmergency: "Sürgősségi gomb aktiválása"
   },
   en: {
     titlePersonal: "Personal", titleSettings: "Settings", titleSocial: "Social", titlePresence: "Presence",
@@ -28,7 +29,8 @@ const translations = {
     btnSaving: "UPDATING DATA...", msgLoadError: "Failed to load profile",
     msgSaveSuccess: "Changes saved to database!", msgSaveError: "Error during save",
     orderEmpty: "No orders yet.", orderId: "Order #", statusPending: "Pending",
-    statusProcessing: "In Production", statusShipped: "Shipped"
+    statusProcessing: "In Production", statusShipped: "Shipped",
+    labelShowProfile: "Show profile to finder", labelShowEmergency: "Enable Emergency Button"
   },
   de: {
     titlePersonal: "Persönlich", titleSettings: "Einstellungen", titleSocial: "Soziale", titlePresence: "Präsenz",
@@ -41,7 +43,8 @@ const translations = {
     btnSaving: "AKTUALISIERUNG...", msgLoadError: "Fehler beim Laden",
     msgSaveSuccess: "In der Datenbank gespeichert!", msgSaveError: "Fehler",
     orderEmpty: "Keine Bestellungen.", orderId: "Bestellnr", statusPending: "Warten",
-    statusProcessing: "In Produktion", statusShipped: "Versandt"
+    statusProcessing: "In Produktion", statusShipped: "Versandt",
+    labelShowProfile: "Profil für Finder anzeigen", labelShowEmergency: "Notfall-Button aktivieren"
   }
 };
 
@@ -54,12 +57,12 @@ export default function SettingsView() {
   
   const [profile, setProfile] = useState({
     name: '', email: '', phoneNumber: '', emergencyPhone: '',
-    instagram: '', facebook: '', bio: '', language: 'hu' 
+    instagram: '', facebook: '', bio: '', language: 'hu',
+    showProfile: true, showEmergency: true // ÚJ CHECKBOX MEZŐK
   });
 
   const t = useMemo(() => translations[profile.language] || translations.hu, [profile.language]);
 
-  // Profil betöltése az adatbázisból (beleértve a mentett nyelvet is)
   useEffect(() => {
     const fetchProfile = async () => {
       const stored = localStorage.getItem('oooVooo_user');
@@ -72,9 +75,20 @@ export default function SettingsView() {
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
-        setProfile(prev => ({ ...prev, ...data }));
         
-        // Szinkronizáljuk a globális nyelvi állapotot a mentett beállítással [cite: 2026-01-02]
+        setProfile({
+          name: data.name || '',
+          email: data.email || '',
+          phoneNumber: data.phoneNumber || '',
+          emergencyPhone: data.emergencyPhone || '',
+          instagram: data.instagram || '',
+          facebook: data.facebook || '',
+          bio: data.bio || '',
+          language: data.language || 'hu',
+          showProfile: data.showProfile !== undefined ? data.showProfile : true,
+          showEmergency: data.showEmergency !== undefined ? data.showEmergency : true
+        });
+        
         if (data.language) updateGlobalLanguage(data.language);
       } catch (err) {
         console.error("Profil betöltési hiba:", err);
@@ -83,7 +97,6 @@ export default function SettingsView() {
     fetchProfile();
   }, []);
 
-  // Rendelések lekérése, ha az Orders fül aktív [cite: 2026-01-06]
   useEffect(() => {
     if (activeTab === 'orders') {
       const fetchMyOrders = async () => {
@@ -108,12 +121,13 @@ export default function SettingsView() {
     }
   }, [activeTab]);
 
-  // Mentés az adatbázisba (Profil adatok + Nyelv) [cite: 2026-01-02, 2026-01-06]
   const handleSave = async () => {
     setLoading(true);
     try {
       const stored = localStorage.getItem('oooVooo_user');
-      const { token } = JSON.parse(stored);
+      if (!stored) return;
+      const userData = JSON.parse(stored);
+      const { token } = userData;
 
       const res = await fetch('https://oovoo-backend.onrender.com/api/users/profile', {
         method: 'PATCH',
@@ -121,22 +135,34 @@ export default function SettingsView() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(profile) // Ebben benne van a választott language mező is
+        body: JSON.stringify(profile)
       });
 
       if (res.ok) {
-        toast.success(t.msgSaveSuccess);
+        const data = await res.json();
+        
+        setProfile(prev => ({ 
+          ...prev, 
+          ...data,
+          phoneNumber: data.phoneNumber || '',
+          emergencyPhone: data.emergencyPhone || '',
+          instagram: data.instagram || '',
+          facebook: data.facebook || '',
+          bio: data.bio || ''
+        }));
+        
         updateGlobalLanguage(profile.language); 
         
-        // Frissítjük a helyi tárolót is, hogy konzisztens maradjon [cite: 2026-01-06]
-        const userData = JSON.parse(stored);
-        userData.language = profile.language;
-        localStorage.setItem('oooVooo_user', JSON.stringify(userData));
+        const updatedStorage = { ...userData, language: profile.language };
+        localStorage.setItem('oooVooo_user', JSON.stringify(updatedStorage));
+
+        toast.success(translations[profile.language].msgSaveSuccess);
       } else {
-        throw new Error();
+        toast.error(translations[profile.language].msgSaveError);
       }
     } catch (err) {
-      toast.error(t.msgSaveError);
+      console.error("Mentési hiba:", err);
+      toast.error(translations[profile.language].msgSaveError);
     } finally {
       setLoading(false);
     }
@@ -145,7 +171,6 @@ export default function SettingsView() {
   return (
     <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
       
-      {/* Sidebar / Tabs */}
       <aside className="w-full md:w-64 flex flex-row md:flex-col gap-2">
         {[
           { id: 'profile', label: t.navPersonal, icon: '👤' },
@@ -168,7 +193,6 @@ export default function SettingsView() {
         ))}
       </aside>
 
-      {/* Main Content Card */}
       <main className="flex-1">
         <div className="bg-card border-2 border-primary/20 rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group">
           <div className="relative z-10 space-y-8">
@@ -180,7 +204,6 @@ export default function SettingsView() {
             </h2>
 
             <div className="grid grid-cols-1 gap-6">
-              {/* --- RENDELÉSEK NÉZET --- */}
               {activeTab === 'orders' && (
                 <div className="space-y-4">
                   {isOrdersLoading ? (
@@ -222,7 +245,6 @@ export default function SettingsView() {
                 </div>
               )}
 
-              {/* --- PROFIL NÉZET --- */}
               {activeTab === 'profile' && (
                 <>
                   <div className="space-y-2">
@@ -260,22 +282,18 @@ export default function SettingsView() {
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-primary ml-2 tracking-widest italic">{t.labelLang}</label>
                     <div className="flex flex-wrap gap-2">
-                      {[
-                        { id: 'hu', label: 'Magyar' },
-                        { id: 'en', label: 'English' },
-                        { id: 'de', label: 'Deutsch' }
-                      ].map((lang) => (
+                      {['hu', 'en', 'de'].map((langId) => (
                         <button
-                          key={lang.id}
+                          key={langId}
                           type="button"
-                          onClick={() => setProfile(prev => ({...prev, language: lang.id}))}
+                          onClick={() => setProfile(prev => ({...prev, language: langId}))}
                           className={`flex-1 min-w-[100px] py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all duration-200 ${
-                            profile.language === lang.id 
+                            profile.language === langId 
                             ? 'bg-primary text-black shadow-glow-primary scale-105 border-transparent' 
                             : 'bg-background/50 border border-border text-muted-foreground hover:text-foreground hover:border-primary/50'
                           }`}
                         >
-                          {lang.label}
+                          {langId === 'hu' ? 'Magyar' : langId === 'en' ? 'English' : 'Deutsch'}
                         </button>
                       ))}
                     </div>
@@ -294,9 +312,35 @@ export default function SettingsView() {
                 </>
               )}
 
-              {/* --- SOCIAL --- */}
               {activeTab === 'social' && (
-                <div className="space-y-6">
+                <div className="space-y-8">
+                  {/* ÚJ CHECKBOX RENDSZER */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { id: 'showProfile', label: t.labelShowProfile, icon: '👁️' },
+                      { id: 'showEmergency', label: t.labelShowEmergency, icon: '🚨' }
+                    ].map(item => (
+                      <div 
+                        key={item.id}
+                        onClick={() => setProfile(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all flex items-center gap-4 ${
+                          profile[item.id] 
+                          ? 'bg-primary/10 border-primary shadow-glow-primary/10' 
+                          : 'bg-background/50 border-white/5 opacity-60'
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          profile[item.id] ? 'bg-primary border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {profile[item.id] && <span className="text-black text-[10px]">✔</span>}
+                        </div>
+                        <div className="flex flex-col">
+                           <span className="text-[14px] font-black uppercase tracking-tighter leading-tight">{item.label}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-muted-foreground ml-2 tracking-[0.2em] italic font-bold">Instagram</label>
                     <input 
@@ -320,7 +364,6 @@ export default function SettingsView() {
                 </div>
               )}
 
-              {/* --- SECURITY --- */}
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div className="p-8 border-2 border-dashed border-primary/10 rounded-[2rem] text-center space-y-4 bg-primary/5">
@@ -334,7 +377,6 @@ export default function SettingsView() {
               )}
             </div>
 
-            {/* Mentés Gomb - Rendelések fülön elrejtve */}
             {activeTab !== 'orders' && (
               <button 
                 onClick={handleSave}
