@@ -54,7 +54,7 @@ export default function ProfileView() {
       const token = getToken();
       if (!token) return;
       // JAVÍTVA: beta1 URL használata
-      await axios.patch('https://oovoo-beta1.onrender.com/api/users/profile', { language: code }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', { language: code }, { headers: { Authorization: `Bearer ${token}` } });
       const stored = localStorage.getItem('oooVooo_user');
       if (stored) {
         const userData = JSON.parse(stored);
@@ -73,7 +73,7 @@ export default function ProfileView() {
     try {
       // JAVÍTVA: Nyelv beküldése a profil adatokkal együtt és beta1 URL
       const updatePayload = { ...profileData, language };
-      const res = await axios.patch('https://oovoo-beta1.onrender.com/api/users/profile', updatePayload, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', updatePayload, { headers: { Authorization: `Bearer ${getToken()}` } });
       const stored = localStorage.getItem('oooVooo_user');
       if (stored && res.data) {
           const userData = JSON.parse(stored);
@@ -94,7 +94,7 @@ export default function ProfileView() {
     if (!emailData.newEmail || !emailData.password) { toast.error('Minden mezőt tölts ki!'); return; }
     setIsUpdating(true);
     try {
-      const res = await axios.post('https://oovoo-beta1.onrender.com/api/users/update-email', emailData, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await axios.post('https://oovoo-backend.onrender.com/api/users/update-email', emailData, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.data.success) { toast.success('Email módosítva! Jelentkezz be újra.'); setTimeout(() => logout(), 2000); }
     } catch (err) { toast.error(err.response?.data?.message || 'Hiba'); } finally { setIsUpdating(false); }
   };
@@ -104,7 +104,7 @@ export default function ProfileView() {
     if (passwordData.newPassword !== passwordData.confirmPassword) { toast.error('Az új jelszavak nem egyeznek!'); return; }
     setIsUpdating(true);
     try {
-      const res = await axios.post('https://oovoo-beta1.onrender.com/api/users/update-password', { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword }, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await axios.post('https://oovoo-backend.onrender.com/api/users/update-password', { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword }, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.data.success) { toast.success('Jelszó sikeresen módosítva! Jelentkezz be újra.'); setTimeout(() => logout(), 2000); }
     } catch (err) { toast.error(err.response?.data?.message || 'Hiba történt'); } finally { setIsUpdating(false); }
   };

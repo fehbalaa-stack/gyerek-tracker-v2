@@ -57,7 +57,7 @@ export default function LoginView({ setMode }) {
         if (formData.password !== formData.passwordConfirm) throw new Error(t.msgPassMismatch || "A jelszavak nem egyeznek!");
         if (!formData.acceptAszf || !formData.acceptGdpr) throw new Error(language === 'hu' ? "El kell fogadni a szabályzatokat!" : "You must accept the policies!");
 
-        const regResponse = await axios.post('https://oovoo-beta1.onrender.com/api/auth/register', {
+        const regResponse = await axios.post('https://oovoo-backend.onrender.com/api/auth/register', {
           name: formData.fullName,
           email: formData.email,
           phoneNumber: formData.phone,
@@ -68,7 +68,7 @@ export default function LoginView({ setMode }) {
         toast.success(regResponse.data.message || t.msgTrackerAdded);
         setView('login');
       } else {
-        const response = await axios.post('https://oovoo-beta1.onrender.com/api/auth/login', {
+        const response = await axios.post('https://oovoo-backend.onrender.com/api/auth/login', {
           email: formData.email,
           password: formData.password
         });

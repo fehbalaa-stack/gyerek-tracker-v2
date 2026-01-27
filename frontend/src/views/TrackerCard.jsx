@@ -66,7 +66,7 @@ export function TrackerCard({ tracker }) {
           <div className="bg-white p-3 rounded-2xl shadow-lg shadow-emerald-900/40 relative group-hover:scale-110 transition-transform duration-700">
             <div className="w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center overflow-hidden border border-slate-100">
               <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://oovoo-beta1.onrender.com/scan/${tracker.uniqueCode}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://oovoo-backend.onrender.com/scan/${tracker.uniqueCode}`}
                 alt="QR"
                 className="w-full h-full object-cover mix-blend-multiply opacity-80"
               />

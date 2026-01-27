@@ -13,7 +13,7 @@ export default function FoundView() {
     if (!msg.trim()) return toast.error("Írj valamit az üzenetbe!");
 
     try {
-      await axios.post('https://oovoo-beta1.onrender.com/api/chat/send', {
+      await axios.post('https://oovoo-backend.onrender.com/api/chat/send', {
         trackerId,
         senderId: name || "Névtelen Megtaláló",
         senderType: 'finder',

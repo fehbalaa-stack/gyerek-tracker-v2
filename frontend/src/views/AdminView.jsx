@@ -14,7 +14,7 @@ const AdminView = () => {
                 const stored = localStorage.getItem('oooVooo_user');
                 const token = JSON.parse(stored)?.token;
                 
-                const res = await axios.get('https://oovoo-beta1.onrender.com/api/trackers/logs/admin', { 
+                const res = await axios.get('https://oovoo-backend.onrender.com/api/trackers/logs/admin', { 
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setLogs(res.data);

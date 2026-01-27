@@ -15,7 +15,7 @@ export default function AdminMessages() {
       const stored = localStorage.getItem('oooVooo_user');
       const token = JSON.parse(stored)?.token;
       
-      const res = await axios.get('https://oovoo-beta1.onrender.com/api/contact/all', {
+      const res = await axios.get('https://oovoo-backend.onrender.com/api/contact/all', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(res.data);
@@ -32,7 +32,7 @@ export default function AdminMessages() {
       const stored = localStorage.getItem('oooVooo_user');
       const token = JSON.parse(stored)?.token;
       
-      await axios.patch(`https://oovoo-beta1.onrender.com/api/contact/${id}/read`, {}, {
+      await axios.patch(`https://oovoo-backend.onrender.com/api/contact/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -50,7 +50,7 @@ export default function AdminMessages() {
       const stored = localStorage.getItem('oooVooo_user');
       const token = JSON.parse(stored)?.token;
       
-      await axios.delete(`https://oovoo-beta1.onrender.com/api/contact/${id}`, {
+      await axios.delete(`https://oovoo-backend.onrender.com/api/contact/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

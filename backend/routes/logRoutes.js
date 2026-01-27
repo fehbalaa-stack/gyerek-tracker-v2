@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 // --- 1. MENTÉS (Ezt hívja a mobil/frontend) ---
-// Ez lesz a: https://oovoo-beta1.onrender.com/api/logs/log-public
+// Ez lesz a: https://oovoo-backend.onrender.com/api/logs/log-public
 router.post('/log-public', async (req, res) => {
     try {
         const { trackerId, lat, lng, device } = req.body;

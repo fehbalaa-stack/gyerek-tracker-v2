@@ -20,7 +20,7 @@ export default function CartView({ cart = [], removeFromCart, clearCart, setMode
             if (!stored) throw new Error('Bejelentkezés szükséges!');
             const { token } = JSON.parse(stored);
 
-            const res = await fetch('https://oovoo-beta1.onrender.com/api/orders/create-checkout-session', {
+            const res = await fetch('https://oovoo-backend.onrender.com/api/orders/create-checkout-session', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

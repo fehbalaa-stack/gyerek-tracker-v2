@@ -48,7 +48,7 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
                 currency: 'eur',
                 product_data: {
                     name: `${item.name} (${item.uniqueCode})`,
-                    images: [`https://oovoo-beta1.onrender.com/schemes/${item.qrStyle}.png`],
+                    images: [`https://oovoo-backend.onrender.com/schemes/${item.qrStyle}.png`],
                     description: `Méret: ${item.size || 'N/A'}`,
                 },
                 unit_amount: Math.round(parseFloat(item.price.replace(/[^0-9.]/g, '')) * 100), 
@@ -63,8 +63,8 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
             mode: 'payment',
             customer_email: customerEmail,
             // 🔥 JAVÍTVA: A pontos beta1-es URL-re irányítunk vissza
-            success_url: 'https://oovoo-beta1.onrender.com/success',
-            cancel_url: 'https://oovoo-beta1.onrender.com/cancel',
+            success_url: 'https://oovoo-backend.onrender.com/success',
+            cancel_url: 'https://oovoo-backend.onrender.com/cancel',
             metadata: {
                 userId: req.user.id,
                 orderIds: JSON.stringify(savedOrders.map(o => o._id))

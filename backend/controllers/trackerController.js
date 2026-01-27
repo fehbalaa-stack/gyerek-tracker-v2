@@ -106,7 +106,7 @@ export const createTracker = async (req, res) => {
     try {
       const qrDir = path.resolve('./public/qrcodes');
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
-      const scanUrl = `https://oovoo-beta1.onrender.com/scan/${uniqueCode}`;      
+      const scanUrl = `https://oovoo-backend.onrender.com/scan/${uniqueCode}`;      
       const qrBuffer = await generateStyledQR(scanUrl, tracker.qrStyle);
       const qrPath = path.join(qrDir, `${uniqueCode}.png`);
       fs.writeFileSync(qrPath, qrBuffer);
@@ -136,7 +136,7 @@ export const updateTracker = async (req, res) => {
 
     if (qrStyle) {
         try {
-            const scanUrl = `https://oovoo-beta1.onrender.com/scan/${updatedTracker.uniqueCode}`;
+            const scanUrl = `https://oovoo-backend.onrender.com/scan/${updatedTracker.uniqueCode}`;
             const qrBuffer = await generateStyledQR(scanUrl, updatedTracker.qrStyle);
             fs.writeFileSync(path.resolve(`./public/qrcodes/${updatedTracker.uniqueCode}.png`), qrBuffer);
         } catch (e) { 

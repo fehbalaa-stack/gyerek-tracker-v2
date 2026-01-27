@@ -29,7 +29,7 @@ const server = http.createServer(app);
 
 // --- KONFIGURÁCIÓ ---
 const allowedOrigins = [
-  "https://oovoo-beta1.onrender.com", 
+  "https://oovoo-backend.onrender.com", 
   "https://oovoo-backend.onrender.com", 
   "http://localhost:5173"
 ];
@@ -75,7 +75,7 @@ app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware
   try {
     const { uniqueCode } = req.params;
     const { styleId } = req.query;
-    const scanUrl = `https://oovoo-beta1.onrender.com/scan/${uniqueCode}`;
+    const scanUrl = `https://oovoo-backend.onrender.com/scan/${uniqueCode}`;
     const buffer = await generateStyledQR(scanUrl, styleId, false);
     res.setHeader('Content-Disposition', `attachment; filename=PROD_${uniqueCode}.png`);
     res.type('image/png').send(buffer);

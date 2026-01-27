@@ -14,7 +14,7 @@ export default function ForgotPasswordView({ onBack }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('https://oovoo-beta1.onrender.com/api/auth/forgot-password', { email });
+      await axios.post('https://oovoo-backend.onrender.com/api/auth/forgot-password', { email });
       toast.success(t.msgResetEmailSent);
       onBack(); 
     } catch (err) {

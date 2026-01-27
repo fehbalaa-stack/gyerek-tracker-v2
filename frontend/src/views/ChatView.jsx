@@ -26,7 +26,7 @@ export default function ChatView({ trackers = [], logs = [], isPremium = false }
 
   // FIX 1: Render URL használata a localhost helyett
   useEffect(() => {
-    const newSocket = io('https://oovoo-beta1.onrender.com', {
+    const newSocket = io('https://oovoo-backend.onrender.com', {
       transports: ['websocket', 'polling'], 
       reconnection: true,
       withCredentials: true
@@ -41,7 +41,7 @@ export default function ChatView({ trackers = [], logs = [], isPremium = false }
         setLoading(true);
         try {
           // FIX 2: Itt is Render URL kell
-          const res = await axios.get(`https://oovoo-beta1.onrender.com/api/chat/${activeChat._id}`);
+          const res = await axios.get(`https://oovoo-backend.onrender.com/api/chat/${activeChat._id}`);
           setMessages(res.data || []);
           setTimeout(scrollToBottom, 100);
         } catch (err) {
@@ -89,7 +89,7 @@ export default function ChatView({ trackers = [], logs = [], isPremium = false }
     setReply("");
     try {
       // FIX 4: Küldés is a Renderre menjen
-      await axios.post('https://oovoo-beta1.onrender.com/api/chat/send', {
+      await axios.post('https://oovoo-backend.onrender.com/api/chat/send', {
         trackerId: activeChat._id,
         senderId: "Owner",
         senderType: 'user', 
