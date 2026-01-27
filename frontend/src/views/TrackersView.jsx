@@ -3,63 +3,45 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { translations } from '../utils/translations';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom'; // 🔥 Link hozzáadva a profilra ugráshoz
-
-const SUGGESTED_EMOJIS = [
-  '🚗', '🚕', '🏍️', '🚲', '🛴', '🚛', '✈️', '⛵', '🚁', '🚜',
-  '🐶', '🐱', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🦁', '🐴', '🦄', '🐦',
-  '🔑', '🎒', '💼', '👜', '👛', '💻', '📱', '🎧', '📸', '🕶️', '🌂', '🔋', '🎁', '📦',
-  '🎸', '👟', '🛹', '🎾', '⚽', '🏀', '🏹', '🎨', '🎣', '🎿', '🎮', '🧩',
-  '🏠', '🧸', '📚', '💳', '💎', '🔔', '🔥', '🛡️', '🛰️', '🔭', '📍', '🚩', '🧿'
-];
+import { Link } from 'react-router-dom';
 
 export default function TrackersView({ trackers, onUpdate, onDelete }) {
-  const { language, user } = useAuth(); // 🔥 user kinyerése az AuthContext-ből
+  const { language, user } = useAuth(); 
   const t = translations[language] || translations.hu;
 
   const [editingId, setEditingId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [editData, setEditData] = useState({ name: '', icon: '📍', permissions: {} });
   const [selectedIds, setSelectedIds] = useState([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // 🔥 Logika a mezők ellenőrzéséhez (Jogosultságok a profil alapján)
   const isFieldMissing = (field) => {
-    // Backend mezőnevek szinkronizálása
-    const userField = field === 'showPhone' ? 'phone' : 
-                      field === 'showName' ? 'name' : 
-                      field === 'showEmail' ? 'email' : null;
-    
-    if (!userField) return false;
-    // Ha 'phoneNumber' néven van a userben, azt is nézzük
-    const val = user?.[userField] || user?.['phoneNumber'];
-    return !val || val.trim() === "";
+    const mapping = {
+      showName: user?.name,
+      showPhone: user?.phoneNumber,
+      showEmail: user?.email,
+      showIG: user?.instagram,
+      showFB: user?.facebook,
+      showEmergency: user?.emergencyPhone
+    };
+    const val = mapping[field];
+    return val === undefined || val === null || String(val).trim() === "";
   };
 
   const defaultPermissions = {
     showName: false,
     showPhone: false,
     showEmail: false,
-    showSocial: false,
+    showIG: false,
+    showFB: false,
+    showEmergency: false,
     allowChat: true
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return t.unknown;
-    const localeMap = { hu: 'hu-HU', en: 'en-US', de: 'de-DE' };
-    const currentLocale = localeMap[language] || 'hu-HU';
-    return new Date(dateString).toLocaleString(currentLocale, {
-      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-    });
   };
 
   const startEditing = (tracker) => {
     if (editingId === tracker._id) {
       setEditingId(null);
-      setShowEmojiPicker(false);
     } else {
       setEditingId(tracker._id);
-      setShowEmojiPicker(false);
       setEditData({ 
         name: tracker.name, 
         icon: tracker.icon || '📍',
@@ -67,7 +49,9 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
           showName: tracker.permissions?.showName ?? defaultPermissions.showName,
           showPhone: tracker.permissions?.showPhone ?? defaultPermissions.showPhone,
           showEmail: tracker.permissions?.showEmail ?? defaultPermissions.showEmail,
-          showSocial: tracker.permissions?.showSocial ?? defaultPermissions.showSocial,
+          showIG: tracker.permissions?.showIG ?? defaultPermissions.showIG,
+          showFB: tracker.permissions?.showFB ?? defaultPermissions.showFB,
+          showEmergency: tracker.permissions?.showEmergency ?? defaultPermissions.showEmergency,
           allowChat: tracker.permissions?.allowChat ?? defaultPermissions.allowChat,
         } 
       });
@@ -88,46 +72,8 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
     }
   };
 
-  const handleApplyToAll = async () => {
-    const confirmMsg = language === 'hu' ? "Alkalmazod ezt a beállítást az ÖSSZES eszközre?" : "Apply these settings to all devices?";
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      toast.loading("...", { id: 'bulk' });
-      await Promise.all(trackers.map(track => 
-        onUpdate(track._id, { 
-            permissions: editData.permissions,
-            icon: editData.icon
-        })
-      ));
-      toast.success(language === 'hu' ? "Minden eszköz frissítve!" : "All devices updated!", { id: 'bulk' });
-    } catch (err) {
-      toast.error(t.msgSaveError, { id: 'bulk' });
-    }
-  };
-
-  const handleResetAllToDefault = async () => {
-    const confirmMsg = language === 'hu' ? "Visszaállítod az ÖSSZES eszközt alapértelmezettre?" : "Reset ALL devices to default?";
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      toast.loading("...", { id: 'reset' });
-      await Promise.all(trackers.map(track => 
-        onUpdate(track._id, { 
-            permissions: defaultPermissions,
-            icon: '📍'
-        })
-      ));
-      setEditData(prev => ({ ...prev, icon: '📍', permissions: { ...defaultPermissions } }));
-      toast.success(language === 'hu' ? "Visszaállítva!" : "Reset complete!", { id: 'reset' });
-    } catch (err) {
-      toast.error(t.msgSaveError, { id: 'reset' });
-    }
-  };
-
   const togglePermission = (key) => {
-    // 🔥 Ha hiányzik a profiladat, nem engedjük kapcsolni
-    if (isFieldMissing(key)) {
+    if (key !== 'allowChat' && isFieldMissing(key)) {
       toast.error(language === 'hu' ? "Előbb töltsd ki a profilodat!" : "Fill your profile first!");
       return;
     }
@@ -164,25 +110,50 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
             <motion.div
               className="w-full h-full relative preserve-3d"
               animate={{ rotateY: editingId === tracker._id ? 180 : 0 }}
-              transition={{ 
-                duration: 0.8, // 🔥 LASSÍTVA: 0.6 -> 0.8 a prémium érzetért
-                type: "spring", 
-                stiffness: 60, // 🔥 FINOMÍTVA: lágyabb mozgás
-                damping: 15 
-              }}
+              transition={{ duration: 0.8, type: "spring", stiffness: 60, damping: 15 }}
             >
+              {/* KÁRTYA ELEJE */}
               <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 rounded-[2.5rem] shadow-sm p-6 flex flex-col justify-between transition-all group-hover:border-emerald-200 overflow-hidden">
+                
+                {/* 🔥 DINAMIKUS QR PREVIEW (EMOJI NÉLKÜL) */}
                 <AnimatePresence>
                   {hoveredId === tracker._id && editingId !== tracker._id && (
                     <motion.div 
-                      initial={{ opacity: 0, scale: 1.2 }}
+                      initial={{ opacity: 0, scale: 1.1 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-emerald-600/90 flex items-center justify-center z-10"
+                      exit={{ opacity: 0, scale: 1.1 }}
+                      className="absolute inset-0 z-10 p-4"
                     >
-                      <div className="bg-white p-3 rounded-2xl shadow-xl rotate-3">
-                        <div className="w-16 h-16 bg-slate-100 rounded flex items-center justify-center border-2 border-slate-200 border-dashed text-slate-400 text-[8px] font-bold text-center leading-tight">
-                           QR CODE<br/>PATTERN
+                      <div className="w-full h-full bg-slate-900/95 rounded-[2rem] flex items-center justify-center relative overflow-hidden shadow-2xl border border-white/10">
+                        {/* Sablon alapú háttér effektek */}
+                        <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${
+                          tracker.templateId === 'dog' ? 'from-orange-400 to-red-600' :
+                          tracker.templateId === 'cat' ? 'from-blue-400 to-indigo-600' :
+                          'from-emerald-400 to-teal-600'
+                        }`}></div>
+                        
+                        {/* Tiszta QR kód minta (Ikon nélkül) */}
+                        <div className="relative bg-white p-3 rounded-2xl shadow-xl rotate-2">
+                          <div className="w-16 h-16 border-4 border-slate-800 rounded-sm relative flex items-center justify-center">
+                            <div className="absolute top-0 left-0 w-3 h-3 bg-slate-800"></div>
+                            <div className="absolute top-0 right-0 w-3 h-3 bg-slate-800"></div>
+                            <div className="absolute bottom-0 left-0 w-3 h-3 bg-slate-800"></div>
+                            <div className="grid grid-cols-4 gap-1 p-1">
+                                {[...Array(16)].map((_, i) => (
+                                    <div key={i} className={`w-1.5 h-1.5 ${Math.random() > 0.5 ? 'bg-slate-800' : 'bg-transparent'}`}></div>
+                                ))}
+                            </div>
+                          </div>
+                          <div className="mt-1 text-center">
+                            <p className="text-[5px] font-black text-slate-400 tracking-[0.2em] uppercase">oooVooo Secure</p>
+                          </div>
+                        </div>
+                        
+                        {/* Sablon neve kicsiben */}
+                        <div className="absolute bottom-4 right-6">
+                            <span className="text-[7px] font-black text-white/40 uppercase tracking-widest italic">
+                                Style: {tracker.templateId || 'Classic'}
+                            </span>
                         </div>
                       </div>
                     </motion.div>
@@ -201,7 +172,13 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
                       {tracker.icon || '📍'}
                     </div>
                   </div>
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">{t.btnSettings}</span>
+                  
+                  <div className="flex gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                    <span className={`text-[10px] ${tracker.permissions?.showPhone ? 'opacity-100' : 'opacity-20 grayscale'}`}>📞</span>
+                    <span className={`text-[10px] ${tracker.permissions?.showIG ? 'opacity-100' : 'opacity-20 grayscale'}`}>📸</span>
+                    <span className={`text-[10px] ${tracker.permissions?.showEmergency ? 'opacity-100' : 'opacity-20 grayscale'}`}>🚨</span>
+                    <span className={`text-[10px] ${tracker.permissions?.allowChat ? 'opacity-100' : 'opacity-20 grayscale'}`}>💬</span>
+                  </div>
                 </div>
 
                 <div>
@@ -213,51 +190,42 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
                 </div>
               </div>
 
+              {/* KÁRTYA HÁTLAPJA */}
               <div 
-                className="absolute inset-0 backface-hidden bg-white border border-emerald-300 ring-4 ring-emerald-50 rounded-[2.5rem] p-6 shadow-xl overflow-hidden flex flex-col justify-between"
+                className="absolute inset-0 backface-hidden bg-white border border-emerald-300 ring-4 ring-emerald-50 rounded-[2.5rem] p-5 shadow-xl flex flex-col justify-between"
                 style={{ transform: "rotateY(180deg)" }}
                 onClick={(e) => e.stopPropagation()} 
               >
                 <div className="flex justify-between items-center mb-2">
-                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.btnSettings}</h3>
-                   <button onClick={() => setEditingId(null)} className="px-3 py-1 bg-slate-800 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-red-500 transition-all">{t.btnClose}</button>
+                   <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.btnSettings}</h3>
+                   <button onClick={() => setEditingId(null)} className="text-[8px] font-black text-red-500 uppercase">{t.btnClose}</button>
                 </div>
 
-                <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1">
-                  <div>
-                    <input 
-                      type="text" 
-                      value={editData.name} 
-                      onChange={(e) => setEditData({ ...editData, name: e.target.value })} 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs focus:border-emerald-200 outline-none font-bold text-slate-700" 
-                    />
-                  </div>
+                <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                  <input 
+                    type="text" 
+                    value={editData.name} 
+                    onChange={(e) => setEditData({ ...editData, name: e.target.value })} 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 mb-2" 
+                  />
                   
                   <div className="grid grid-cols-2 gap-2">
-                    {['showName', 'showPhone', 'showEmail', 'allowChat'].map((key) => {
-                      const missing = isFieldMissing(key);
+                    {['showName', 'showPhone', 'showEmergency', 'showIG', 'showFB', 'allowChat'].map((key) => {
+                      const missing = key !== 'allowChat' && isFieldMissing(key);
                       return (
                         <div 
                           key={key} 
-                          title={missing ? "Előbb töltsd ki a profilodban!" : ""}
-                          onClick={() => togglePermission(key)} 
-                          className={`p-2 rounded-xl border flex flex-col justify-center cursor-pointer transition-all ${editData.permissions[key] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-50 bg-slate-50'} ${missing ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+                          onClick={() => !missing && togglePermission(key)} 
+                          className={`p-2 rounded-xl border flex flex-col justify-center transition-all ${editData.permissions[key] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-50 bg-slate-50'} ${missing ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <div className="flex items-center justify-between w-full">
-                            <span className="text-[8px] font-black text-slate-500 uppercase">{key.replace('show', '')}</span>
-                            <div className={`w-6 h-3 rounded-full ${editData.permissions[key] && !missing ? 'bg-emerald-500' : 'bg-slate-300'} relative`}>
-                              <div className={`absolute top-0.5 w-2 h-2 bg-white rounded-full transition-all ${editData.permissions[key] && !missing ? 'right-0.5' : 'left-0.5'}`}></div>
+                            <span className="text-[7px] font-black text-slate-500 uppercase">{key.replace('show', '')}</span>
+                            <div className={`w-5 h-2.5 rounded-full ${editData.permissions[key] && !missing ? 'bg-emerald-500' : 'bg-slate-300'} relative`}>
+                              <div className={`absolute top-0.5 w-1.5 h-1.5 bg-white rounded-full transition-all ${editData.permissions[key] && !missing ? 'right-0.5' : 'left-0.5'}`}></div>
                             </div>
                           </div>
-                          {/* 🔥 Figyelmeztető szöveg és link */}
                           {missing && (
-                            <Link 
-                              to="/profile" 
-                              onClick={(e) => e.stopPropagation()} 
-                              className="text-[7px] text-red-500 font-bold uppercase mt-1 hover:underline"
-                            >
-                              Hiányzó adat ↗
-                            </Link>
+                            <Link to="/profile" onClick={(e) => e.stopPropagation()} className="text-[6px] text-red-500 font-bold uppercase mt-1 hover:underline">Hiányzó adat ↗</Link>
                           )}
                         </div>
                       );
@@ -265,26 +233,17 @@ export default function TrackersView({ trackers, onUpdate, onDelete }) {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-4">
-                  <button onClick={() => handleSave(tracker._id)} className="flex-[2] bg-emerald-600 text-white font-black uppercase text-[9px] tracking-widest py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-all">{t.btnSave}</button>
-                  <button onClick={() => window.confirm(t.confirmDelete) && onDelete(tracker._id)} className="flex-1 bg-red-50 text-red-500 border border-red-100 font-black uppercase text-[8px] tracking-widest py-3 rounded-xl hover:bg-red-500 hover:text-white transition-all">TÖRLÉS</button>
-                </div>
+                <button 
+                  onClick={() => handleSave(tracker._id)} 
+                  className="w-full bg-emerald-600 text-white font-black uppercase text-[9px] py-3 rounded-xl mt-3 shadow-lg"
+                >
+                  {t.btnSave}
+                </button>
               </div>
             </motion.div>
           </div>
         ))}
       </div>
-      
-      {selectedIds.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-2xl animate-in slide-in-from-bottom-10">
-          <div className="bg-white border-2 border-emerald-500 p-6 rounded-[2.5rem] shadow-2xl flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase text-emerald-600 tracking-widest ml-4">
-              {selectedIds.length} {language === 'hu' ? 'Kijelölve' : 'Selected'}
-            </span>
-            <button onClick={() => setSelectedIds([])} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all">✕ {t.cancel}</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
