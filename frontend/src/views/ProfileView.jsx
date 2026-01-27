@@ -5,7 +5,6 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
 export default function ProfileView() {
-  // JAVÍTVA: updateLanguage helyett a Context-ben létező updateGlobalLanguage-et használjuk
   const { user, language, updateGlobalLanguage, logout } = useAuth();
   const t = translations[language] || translations.hu;
 
@@ -20,7 +19,13 @@ export default function ProfileView() {
     instagram: '',
     facebook: '',
     bio: '',
-    emergencyPhone: ''
+    emergencyPhone: '',
+    // ÚJ CHECKBOX ÁLLAPOTOK
+    showName: true,
+    showPhone: true,
+    showEmergency: true,
+    showIG: true,
+    showFB: true
   });
 
   const [emailData, setEmailData] = useState({ newEmail: '', password: '' });
@@ -34,7 +39,13 @@ export default function ProfileView() {
         instagram: user.instagram || '',
         facebook: user.facebook || '',
         bio: user.bio || '',
-        emergencyPhone: user.emergencyPhone || ''
+        emergencyPhone: user.emergencyPhone || '',
+        // Betöltjük a mentett checkbox állapotokat vagy alapértelmezett true
+        showName: user.showName !== undefined ? user.showName : true,
+        showPhone: user.showPhone !== undefined ? user.showPhone : true,
+        showEmergency: user.showEmergency !== undefined ? user.showEmergency : true,
+        showIG: user.showIG !== undefined ? user.showIG : true,
+        showFB: user.showFB !== undefined ? user.showFB : true
       });
     }
   }, [user]);
@@ -50,27 +61,18 @@ export default function ProfileView() {
     return stored ? JSON.parse(stored).token : null;
   };
 
-  // NYELVMENTÉS JAVÍTVA
   const handleLanguageChange = async (code) => {
     try {
       const token = getToken();
       if (!token) return;
-
-      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', 
-        { language: code }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', { language: code }, { headers: { Authorization: `Bearer ${token}` } });
       const stored = localStorage.getItem('oooVooo_user');
       if (stored) {
         const userData = JSON.parse(stored);
         userData.language = code;
         localStorage.setItem('oooVooo_user', JSON.stringify(userData));
       }
-
-      // JAVÍTVA: A helyes függvényhívás
       await updateGlobalLanguage(code);
-      
       const successMsg = code === 'hu' ? 'Nyelv elmentve!' : code === 'de' ? 'Sprache gespeichert!' : 'Language saved!';
       toast.success(successMsg);
     } catch (err) {
@@ -79,30 +81,20 @@ export default function ProfileView() {
     }
   };
 
-  // PROFIL FRISSÍTÉS JAVÍTVA (Üres mezők és téves hibaüzenet ellen)
   const handleProfileUpdate = async () => {
     setIsUpdating(true);
     try {
       const token = getToken();
       const updatePayload = { ...profileData, language };
-
-      const res = await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', 
-        updatePayload, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Frissítjük a LocalStorage-ot a küldött adatokkal
+      await axios.patch('https://oovoo-backend.onrender.com/api/users/profile', updatePayload, { headers: { Authorization: `Bearer ${token}` } });
       const stored = localStorage.getItem('oooVooo_user');
       if (stored) {
           const userData = JSON.parse(stored);
           const updatedLocalUser = { ...userData, ...profileData };
           localStorage.setItem('oooVooo_user', JSON.stringify(updatedLocalUser));
       }
-
       toast.success(language === 'hu' ? 'Profil sikeresen frissítve!' : 'Profile updated!');
       setShowProfileEdit(false);
-      
-      // Rövid idő után újratöltünk, hogy a globális state szinkronba kerüljön
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       console.error("Profil frissítési hiba:", err);
@@ -129,6 +121,15 @@ export default function ProfileView() {
       const res = await axios.post('https://oovoo-backend.onrender.com/api/users/update-password', { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword }, { headers: { Authorization: `Bearer ${getToken()}` } });
       if (res.data.success) { toast.success('Jelszó sikeresen módosítva! Jelentkezz be újra.'); setTimeout(() => logout(), 2000); }
     } catch (err) { toast.error(err.response?.data?.message || 'Hiba történt'); } finally { setIsUpdating(false); }
+  };
+
+  // CHECKBOX LOGIKA SEGÉDFÜGGVÉNYEK
+  const canCheck = {
+    name: profileData.name.trim().length > 0,
+    phone: profileData.phoneNumber.trim().length > 0,
+    emergency: profileData.emergencyPhone.trim().length > 0,
+    ig: profileData.instagram.trim().length > 0,
+    fb: profileData.facebook.trim().length > 0
   };
 
   return (
@@ -162,13 +163,16 @@ export default function ProfileView() {
           {!showProfileEdit ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
               {[
-                { label: 'Telefonszám', val: user?.phoneNumber },
-                { label: 'Instagram', val: user?.instagram ? `@${user.instagram}` : null },
-                { label: 'Facebook', val: user?.facebook },
-                { label: 'S.O.S Szám', val: user?.emergencyPhone, sos: true }
+                { label: 'Telefonszám', val: user?.phoneNumber, show: user?.showPhone },
+                { label: 'Instagram', val: user?.instagram ? `@${user.instagram}` : null, show: user?.showIG },
+                { label: 'Facebook', val: user?.facebook, show: user?.showFB },
+                { label: 'S.O.S Szám', val: user?.emergencyPhone, sos: true, show: user?.showEmergency }
               ].map((item, i) => (
-                <div key={i} className={`p-5 rounded-2xl border ${item.sos ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
-                  <span className={`text-[8px] block uppercase font-black mb-1 tracking-widest ${item.sos ? 'text-red-500' : 'text-slate-400'}`}>{item.label}</span>
+                <div key={i} className={`p-5 rounded-2xl border ${item.sos ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'} ${item.show === false ? 'opacity-40 grayscale' : ''}`}>
+                  <div className="flex justify-between items-start">
+                    <span className={`text-[8px] block uppercase font-black mb-1 tracking-widest ${item.sos ? 'text-red-500' : 'text-slate-400'}`}>{item.label}</span>
+                    {item.show === false && <span className="text-[7px] font-bold text-slate-400 italic">REJTETT</span>}
+                  </div>
                   <span className={`text-sm font-bold ${item.sos ? 'text-red-600' : 'text-slate-700'}`}>{item.val || '-'}</span>
                 </div>
               ))}
@@ -187,7 +191,40 @@ export default function ProfileView() {
               </div>
               <input type="text" value={profileData.emergencyPhone} onChange={(e) => setProfileData({...profileData, emergencyPhone: e.target.value})} placeholder="SÜRGŐSSÉGI SZÁM" className="w-full bg-white border border-red-200 rounded-xl px-5 py-3 text-sm outline-none focus:border-red-400 font-bold text-red-600" />
               <textarea value={profileData.bio} onChange={(e) => setProfileData({...profileData, bio: e.target.value})} placeholder="BEMUTATKOZÁS" className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-sm outline-none focus:border-emerald-400 font-bold h-24 resize-none" />
-              <div className="flex gap-3">
+              
+              {/* CHECKBOX LISTA SZEKCIÓ */}
+              <div className="pt-4 space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Megjelenítési beállítások</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { id: 'showName', label: 'Név megjelenítése', active: canCheck.name, msg: 'Add meg a nevedet!' },
+                    { id: 'showPhone', label: 'Telefonszám megjelenítése', active: canCheck.phone, msg: 'Add meg a telefonszámodat!' },
+                    { id: 'showEmergency', label: 'SOS Gomb megjelenítése', active: canCheck.emergency, msg: 'Add meg a sürgősségi számot!' },
+                    { id: 'showIG', label: 'Instagram megjelenítése', active: canCheck.ig, msg: 'Add meg az Instagram felhasználóneved!' },
+                    { id: 'showFB', label: 'Facebook megjelenítése', active: canCheck.fb, msg: 'Add meg a Facebook profilod!' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex flex-col">
+                      <div 
+                        onClick={() => item.active && setProfileData({...profileData, [item.id]: !profileData[item.id]})}
+                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                          !item.active ? 'bg-slate-100 border-slate-200 opacity-50 cursor-not-allowed' :
+                          profileData[item.id] ? 'bg-emerald-50 border-emerald-400 shadow-sm' : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black uppercase tracking-tighter ${!item.active ? 'text-slate-400' : 'text-slate-700'}`}>{item.label}</span>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${profileData[item.id] && item.active ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                          {profileData[item.id] && item.active && <span className="text-white text-[10px]">✔</span>}
+                        </div>
+                      </div>
+                      {!item.active && (
+                        <p className="text-[9px] text-amber-600 font-bold mt-1 px-2 italic">⚠️ {item.msg}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowProfileEdit(false)} className="flex-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mégse</button>
                 <button onClick={handleProfileUpdate} disabled={isUpdating} className="flex-[2] bg-emerald-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-emerald-100">Mentés</button>
               </div>

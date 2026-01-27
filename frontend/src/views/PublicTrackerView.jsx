@@ -19,7 +19,9 @@ const translations = {
     closeChat: "BEZÁRÁS X",
     phoneLabel: "TELEFONSZÁM:",
     emailLabel: "EMAIL CÍM:",
-    sosLabel: "SÜRGŐSSÉGI (SOS) SZÁM:"
+    sosLabel: "SÜRGŐSSÉGI (SOS) SZÁM:",
+    igLabel: "INSTAGRAM:",
+    fbLabel: "FACEBOOK:"
   },
   en: {
     loading: "oooVooo Loading...",
@@ -35,7 +37,9 @@ const translations = {
     closeChat: "CLOSE X",
     phoneLabel: "PHONE NUMBER:",
     emailLabel: "EMAIL ADDRESS:",
-    sosLabel: "EMERGENCY (SOS) NUMBER:"
+    sosLabel: "EMERGENCY (SOS) NUMBER:",
+    igLabel: "INSTAGRAM:",
+    fbLabel: "FACEBOOK:"
   }
 };
 
@@ -75,7 +79,6 @@ export default function PublicTrackerView({ code }) {
         });
         
         setLocationSent(true);
-        toast.success("Helyzet rögzítve! 📍");
       } catch (e) { console.warn("Hiba a koordináták küldésekor:", e); }
     }, (err) => { console.warn("GPS hiba:", err.message); }, options);
   }, []);
@@ -86,7 +89,6 @@ export default function PublicTrackerView({ code }) {
         const res = await axios.get(`https://oovoo-backend.onrender.com/api/public/tracker/${code}`);
         if (res.data && res.data.success) {
           const tData = res.data.tracker;
-          // FONTOS: Mindig a valódi MongoDB _id-t használjuk a loghoz és chathoz
           const realDbId = tData?._id?.toString();
           
           if (tData) {
@@ -152,7 +154,12 @@ export default function PublicTrackerView({ code }) {
           </div>
           <div className="absolute inset-0 bg-emerald-100 blur-2xl rounded-full opacity-40 animate-pulse"></div>
         </div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">{tracker?.name}</h1>
+        
+        {/* NÉV MEGJELENÍTÉSE (Checkbox függő) */}
+        {(owner?.showName !== false) && (
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">{owner?.name || tracker?.name}</h1>
+        )}
+        
         <div className="mt-2">
             <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-colors duration-500 ${locationSent ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100'}`}>
               {locationSent ? t.gpsSuccess : t.gpsSearching}
@@ -168,8 +175,8 @@ export default function PublicTrackerView({ code }) {
             </p>
           </div>
 
-          {/* SOS SZÁM KÁRTYA - Fixálva: animate-bounce törölve */}
-          {owner?.emergencyPhone && (
+          {/* SOS SZÁM KÁRTYA (Checkbox függő) */}
+          {owner?.emergencyPhone && owner?.showEmergency !== false && (
             <div className="p-6 bg-red-50 border border-red-100 rounded-[2rem] flex flex-col items-center gap-3 shadow-lg shadow-red-50/50">
               <span className="text-[10px] font-black text-red-500 tracking-[0.2em] uppercase">{t.sosLabel}</span>
               <span className="text-2xl font-black text-red-700 tracking-tighter">{owner.emergencyPhone}</span>
@@ -179,22 +186,32 @@ export default function PublicTrackerView({ code }) {
             </div>
           )}
 
-          {/* TELEFON KÁRTYA */}
-          {tracker?.permissions?.showPhone && owner?.phone && (
+          {/* TELEFON KÁRTYA (Checkbox függő) */}
+          {owner?.phoneNumber && owner?.showPhone !== false && (
             <div className="p-6 bg-white border border-slate-100 rounded-[2rem] flex flex-col items-center gap-2 shadow-sm hover:border-emerald-200 transition-colors">
               <span className="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase">{t.phoneLabel}</span>
-              <a href={`tel:${owner.phone}`} className="text-xl font-black text-slate-800 hover:text-emerald-600 transition-colors tracking-tight">
-                {owner.phone}
+              <a href={`tel:${owner.phoneNumber}`} className="text-xl font-black text-slate-800 hover:text-emerald-600 transition-colors tracking-tight">
+                {owner.phoneNumber}
               </a>
             </div>
           )}
 
-          {/* EMAIL KÁRTYA */}
-          {tracker?.permissions?.showEmail && owner?.email && (
+          {/* INSTAGRAM KÁRTYA (Checkbox függő) */}
+          {owner?.instagram && owner?.showIG !== false && (
             <div className="p-6 bg-white border border-slate-100 rounded-[2rem] flex flex-col items-center gap-2 shadow-sm hover:border-emerald-200 transition-colors">
-              <span className="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase">{t.emailLabel}</span>
-              <a href={`mailto:${owner.email}`} className="text-sm font-black text-slate-800 break-all underline decoration-emerald-200 underline-offset-4">
-                {owner.email}
+              <span className="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase">{t.igLabel}</span>
+              <a href={`https://instagram.com/${owner.instagram}`} target="_blank" rel="noreferrer" className="text-sm font-black text-emerald-600 break-all underline decoration-emerald-200 underline-offset-4">
+                @{owner.instagram}
+              </a>
+            </div>
+          )}
+
+          {/* FACEBOOK KÁRTYA (Checkbox függő) */}
+          {owner?.facebook && owner?.showFB !== false && (
+            <div className="p-6 bg-white border border-slate-100 rounded-[2rem] flex flex-col items-center gap-2 shadow-sm hover:border-emerald-200 transition-colors">
+              <span className="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase">{t.fbLabel}</span>
+              <a href={owner.facebook} target="_blank" rel="noreferrer" className="text-sm font-black text-blue-600 break-all underline decoration-blue-200 underline-offset-4">
+                Facebook Profile
               </a>
             </div>
           )}
@@ -202,65 +219,63 @@ export default function PublicTrackerView({ code }) {
       </div>
 
       {/* CHAT RÉSZLEG */}
-      {tracker?.permissions?.allowChat && (
-        <div className="mt-4 flex flex-col flex-1">
-          {!chatOpen ? (
-            <button 
-              onClick={() => setChatOpen(true)}
-              className="mt-2 bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-slate-200 active:scale-95 transition-all animate-in slide-in-from-bottom-6"
-            >
-              {t.openChat}
-            </button>
-          ) : (
-            <div className="flex-1 flex flex-col animate-in slide-in-from-bottom-8 duration-500 min-h-0">
-              <div className="flex justify-between items-center mb-4 px-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">oooVooo Live Chat</span>
-                <button 
-                  onClick={() => setChatOpen(false)} 
-                  className="bg-red-50 text-red-500 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl border border-red-100 active:scale-90 transition-all"
-                >
-                  {t.closeChat}
-                </button>
-              </div>
-
-              <div className="flex-1 bg-white border border-emerald-50 rounded-[2.5rem] p-6 mb-4 overflow-y-auto shadow-sm flex flex-col space-y-4 custom-scrollbar">
-                {messages.map((m, i) => {
-                  const isMe = m.senderType === 'finder';
-                  return (
-                    <div key={m._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                      <div className={`max-w-[85%] p-4 rounded-2xl text-sm font-medium shadow-sm ${
-                        isMe 
-                          ? 'bg-emerald-600 text-white rounded-tr-none shadow-emerald-100' 
-                          : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'
-                      }`}>
-                        {m.message}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={chatEndRef} />
-              </div>
-
-              <div className="flex gap-2 pb-6">
-                <input 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={t.msgPlaceholder}
-                  className="flex-1 bg-white border border-emerald-50 rounded-2xl px-6 py-5 outline-none focus:border-emerald-200 transition-all font-bold text-sm text-slate-700 shadow-sm"
-                />
-                <button 
-                  onClick={handleSend}
-                  disabled={!inputText.trim()}
-                  className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-100 active:scale-95 transition-all disabled:opacity-30"
-                >
-                  {t.send}
-                </button>
-              </div>
+      <div className="mt-4 flex flex-col flex-1">
+        {!chatOpen ? (
+          <button 
+            onClick={() => setChatOpen(true)}
+            className="mt-2 bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-slate-200 active:scale-95 transition-all animate-in slide-in-from-bottom-6"
+          >
+            {t.openChat}
+          </button>
+        ) : (
+          <div className="flex-1 flex flex-col animate-in slide-in-from-bottom-8 duration-500 min-h-0">
+            <div className="flex justify-between items-center mb-4 px-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">oooVooo Live Chat</span>
+              <button 
+                onClick={() => setChatOpen(false)} 
+                className="bg-red-50 text-red-500 font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl border border-red-100 active:scale-90 transition-all"
+              >
+                {t.closeChat}
+              </button>
             </div>
-          )}
-        </div>
-      )}
+
+            <div className="flex-1 bg-white border border-emerald-50 rounded-[2.5rem] p-6 mb-4 overflow-y-auto shadow-sm flex flex-col space-y-4 custom-scrollbar">
+              {messages.map((m, i) => {
+                const isMe = m.senderType === 'finder';
+                return (
+                  <div key={m._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                    <div className={`max-w-[85%] p-4 rounded-2xl text-sm font-medium shadow-sm ${
+                      isMe 
+                        ? 'bg-emerald-600 text-white rounded-tr-none shadow-emerald-100' 
+                        : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'
+                    }`}>
+                      {m.message}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div className="flex gap-2 pb-6">
+              <input 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder={t.msgPlaceholder}
+                className="flex-1 bg-white border border-emerald-50 rounded-2xl px-6 py-5 outline-none focus:border-emerald-200 transition-all font-bold text-sm text-slate-700 shadow-sm"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={!inputText.trim()}
+                className="bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-100 active:scale-95 transition-all disabled:opacity-30"
+              >
+                {t.send}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="text-[9px] text-slate-300 text-center font-black uppercase tracking-[0.3em] py-6 mt-auto">
         oooVooo Secure Chat Protocol Active
