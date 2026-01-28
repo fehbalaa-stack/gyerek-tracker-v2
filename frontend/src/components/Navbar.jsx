@@ -39,13 +39,15 @@ const Navbar = ({ setMode, currentMode, cartCount }) => {
                     </div>
                 </div>
                 
-                {/* 2. FŐ MENÜPONTOK */}
+                {/* 2. FŐ MENÜPONTOK - 🔥 JAVÍTVA: Hozzáadva a 'orders' */}
                 <div className="hidden md:flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100">
                     {[
                         { id: 'dashboard', label: t.navHome, icon: '🏠' },
                         { id: 'map', label: t.navMap, icon: '📍' },
                         { id: 'chat', label: t.navChat, icon: '💬' },
                         { id: 'webshop', label: t.navShop, icon: '🛍️' },
+                        // 🔥 ÚJ: Rendeléseim menüpont
+                        { id: 'orders', label: language === 'hu' ? 'Rendeléseim' : 'Orders', icon: '📦' },
                     ].map((item) => (
                         <button 
                             key={item.id}
@@ -82,17 +84,28 @@ const Navbar = ({ setMode, currentMode, cartCount }) => {
                         )}
                     </button>
 
-                    {/* Admin Panel */}
+                    {/* Admin Panel & Admin Rendelések Gyorsgomb */}
                     {user?.role === 'admin' && (
-                        <button 
-                            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                                currentMode === 'admin' ? 'bg-slate-800 text-white shadow-lg' : 'bg-slate-50 text-slate-400 border border-slate-100'
-                            }`} 
-                            onClick={() => setMode('admin')}
-                            title="Admin Panel"
-                        >
-                            <span className="text-lg">🛡️</span>
-                        </button>
+                        <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                            <button 
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                                    currentMode === 'admin' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
+                                }`} 
+                                onClick={() => setMode('admin')}
+                                title="Admin Panel"
+                            >
+                                <span className="text-base">🛡️</span>
+                            </button>
+                            <button 
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                                    currentMode === 'admin_orders' ? 'bg-rose-600 text-white shadow-lg' : 'text-rose-400 hover:text-rose-600'
+                                }`} 
+                                onClick={() => setMode('admin_orders')}
+                                title="Admin Orders (Management)"
+                            >
+                                <span className="text-base">📋</span>
+                            </button>
+                        </div>
                     )}
 
                     {/* Profil / Settings */}

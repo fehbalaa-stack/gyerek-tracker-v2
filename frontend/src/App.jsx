@@ -14,6 +14,7 @@ import AdminOrdersView  from './views/AdminOrdersView';
 import CartView  from './views/CartView';
 import PublicTrackerView from './views/PublicTrackerView'; 
 import LegalView  from './views/LegalView'; 
+import MyOrdersView from './views/MyOrdersView'; // 🔥 ÚJ IMPORT
 
 // Kiemelt V3 nézetek
 import DashboardViewV3 from './views/DashboardView'; 
@@ -194,9 +195,10 @@ function AppContent() {
               {mode === 'manage' && <TrackersView trackers={trackers} onDelete={handleDeleteTracker} onUpdate={handleUpdateTracker} />}
               {mode === 'map' && <MapView trackers={trackers} logs={logs} />} 
               {mode === 'chat' && <ChatView trackers={trackers} logs={logs} isPremium={user?.isPremium} />}
+              {mode === 'orders' && <MyOrdersView />} 
               {(mode === 'webshop' || mode === 'shop') && <ShopView trackers={trackers} selectedTrackerId={selectedTrackerId} setMode={handleSetMode} addToCart={(item) => setCart([...cart, item])} />}
               {mode === 'cart' && <CartView cart={cart} removeFromCart={(id) => setCart(cart.filter(i => i.cartId !== id))} clearCart={() => setCart([])} setMode={handleSetMode} user={user} />}
-              {mode === 'admin-orders' && user?.role === 'admin' && <AdminOrdersView />}
+              {(mode === 'admin-orders' || mode === 'admin_orders') && user?.role === 'admin' && <AdminOrdersView />}
               {mode === 'contact' && <ContactView setMode={handleSetMode} />} 
               {mode === 'admin' && user?.role === 'admin' && <AdminView />}
               {mode === 'privacy' && <LegalView type="privacy" setMode={handleSetMode} />}
