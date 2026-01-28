@@ -33,22 +33,28 @@ export const Navigation = ({ isAdmin, isPremium, setMode, currentMode, cartCount
                         </div>
                     </div>
 
-                    {/* 2. ASZTALI MENÜ (Középen, csak md méret felett) */}
+                    {/* 2. ASZTALI MENÜ - 🔥 JAVÍTVA: Hozzáadva a Rendelések és Admin_orders */}
                     <div className="hidden md:flex items-center gap-1.5 bg-slate-50/50 p-1.5 rounded-[1.5rem] border border-slate-100">
                         <button onClick={() => setMode('dashboard')} className={navLinkClass('dashboard')}>{t.navHome}</button>
                         <button onClick={() => setMode('map')} className={navLinkClass('map')}>{t.navMap}</button>
                         <button onClick={() => setMode('chat')} className={navLinkClass('chat')}>{t.navChat}</button>
                         <button onClick={() => setMode('webshop')} className={navLinkClass('webshop')}>{t.navShop}</button>
                         
+                        {/* Felhasználói Rendelések */}
+                        <button onClick={() => setMode('orders')} className={navLinkClass('orders')}>
+                            {currentLang === 'hu' ? '📦 Rendeléseim' : '📦 Orders'}
+                        </button>
+                        
                         {isAdmin && (
-                            <button onClick={() => setMode('admin')} className="px-4 py-2.5 rounded-2xl font-black uppercase text-[10px] bg-rose-50 text-rose-500 border border-rose-100">🛡️</button>
+                            <div className="flex gap-1 ml-2 pl-2 border-l border-slate-200">
+                                <button onClick={() => setMode('admin')} className="px-3 py-2.5 rounded-xl font-black uppercase text-[10px] bg-slate-800 text-white shadow-sm" title="Admin Panel">🛡️</button>
+                                <button onClick={() => setMode('admin_orders')} className={`px-3 py-2.5 rounded-xl font-black uppercase text-[10px] transition-all ${currentMode === 'admin_orders' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-500'}`} title="Order Management">📋</button>
+                            </div>
                         )}
                     </div>
 
-                    {/* 3. FUNKCIÓK (Mindig látható jobb oldal) */}
+                    {/* 3. FUNKCIÓK */}
                     <div className="flex items-center gap-2 md:gap-3">
-                        
-                        {/* Nyelvválasztó (mobilon elrejtve a helytakarékosság miatt) */}
                         <div className="hidden lg:flex gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 mr-2">
                             {['hu', 'en'].map((lang) => (
                                 <button
@@ -62,18 +68,15 @@ export const Navigation = ({ isAdmin, isPremium, setMode, currentMode, cartCount
                         </div>
 
                         <div className="flex items-center gap-1.5 md:gap-2 md:pl-2 md:border-l border-slate-100">
-                            {/* Kosár */}
                             <button onClick={() => setMode('cart')} className={`relative w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center border transition-all ${currentMode === 'cart' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border-slate-100'}`}>
                                 <span className="text-base md:text-lg">🛒</span>
                                 {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">{cartCount}</span>}
                             </button>
 
-                            {/* Beállítások */}
                             <button onClick={() => setMode('settings')} className={`w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center border transition-all ${currentMode === 'settings' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border-slate-100'}`}>
                                 <span className="text-base md:text-lg">👤</span>
                             </button>
 
-                            {/* Kijelentkezés */}
                             <button onClick={logout} className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl flex items-center justify-center bg-rose-50 text-rose-500 border border-rose-100">
                                 <span className="text-base md:text-lg">🚪</span>
                             </button>
@@ -81,14 +84,18 @@ export const Navigation = ({ isAdmin, isPremium, setMode, currentMode, cartCount
                     </div>
                 </div>
 
-                {/* MOBIL MENÜSÁV (Csak md alatt látszik) */}
+                {/* MOBIL MENÜSÁV - 🔥 JAVÍTVA: Ide is bekerültek az új gombok */}
                 <div className="md:hidden flex items-center gap-2 overflow-x-auto pb-3 pt-1 no-scrollbar -mx-1 px-1">
                     <button onClick={() => setMode('dashboard')} className={navLinkClass('dashboard')}>{t.navHome}</button>
+                    <button onClick={() => setMode('orders')} className={navLinkClass('orders')}>📦</button>
                     <button onClick={() => setMode('map')} className={navLinkClass('map')}>{t.navMap}</button>
                     <button onClick={() => setMode('chat')} className={navLinkClass('chat')}>{t.navChat}</button>
                     <button onClick={() => setMode('webshop')} className={navLinkClass('webshop')}>{t.navShop}</button>
                     {isAdmin && (
-                        <button onClick={() => setMode('admin')} className="px-4 py-2 rounded-xl font-black uppercase text-[9px] bg-rose-50 text-rose-500 border border-rose-100 whitespace-nowrap">Admin</button>
+                        <>
+                            <button onClick={() => setMode('admin_orders')} className="px-4 py-2 rounded-xl font-black uppercase text-[9px] bg-rose-50 text-rose-500 border border-rose-100 whitespace-nowrap">📋</button>
+                            <button onClick={() => setMode('admin')} className="px-4 py-2 rounded-xl font-black uppercase text-[9px] bg-slate-800 text-white border border-slate-700 whitespace-nowrap">🛡️</button>
+                        </>
                     )}
                 </div>
 
