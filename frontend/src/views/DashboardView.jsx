@@ -147,6 +147,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
             <div className="absolute -right-4 -bottom-4 text-[8rem] opacity-[0.03] group-hover:opacity-[0.06] transition-all rotate-12 select-none pointer-events-none">📱</div>
           </div>
 
+          {/* 🔥 RENDELÉSEK GYORSNÉZET */}
           <div onClick={() => setMode('orders')} className="p-10 cursor-pointer hover:bg-slate-50 transition-all group relative border-b md:border-b-0 md:border-r border-emerald-50">
             <div className="relative z-10">
               <h2 className="text-blue-600 font-black text-xs uppercase tracking-[0.2em] mb-4">{language === 'hu' ? '📦 RENDELÉSEK' : '📦 ORDERS'}</h2>
@@ -208,10 +209,10 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
                       
                       {/* 🔥 STÍLUS VÁLASZTÓ PÖTTYÖK - MARCSIKA-LOGIKA */}
                       {tracker.skins && tracker.skins.length > 0 && (
-                        <div className="flex gap-1.5 my-2">
+                        <div className="flex gap-1.5 my-2 overflow-x-auto no-scrollbar py-1">
                           <button 
                             onClick={(e) => { e.stopPropagation(); onUpdateTracker(tracker._id, { qrStyle: 'classic' }); }}
-                            className={`w-4 h-4 rounded-full border-2 transition-all ${tracker.qrStyle === 'classic' ? 'border-emerald-500 scale-110' : 'border-slate-200 opacity-40'}`}
+                            className={`w-4 h-4 rounded-full border-2 transition-all ${tracker.qrStyle === 'classic' || !tracker.qrStyle ? 'border-emerald-500 scale-110' : 'border-slate-200 opacity-40'}`}
                             style={{ backgroundColor: '#f1f5f9' }}
                             title="Classic"
                           />
@@ -250,7 +251,6 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
         </section>
       )}
 
-      {/* ALSÓ KÁRTYÁK */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div onClick={() => setMode('shop')} className="bg-white border border-emerald-50 p-8 rounded-[2rem] hover:border-emerald-200 transition-all shadow-sm cursor-pointer group h-full">
           <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 border border-emerald-100/50">🛒</div>
@@ -269,9 +269,26 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
           </div>
           <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:rotate-12 transition-transform">📦</div>
         </div>
+
+        <div onClick={() => setMode('manage')} className="bg-white border border-emerald-50 p-8 rounded-[2rem] hover:border-emerald-200 transition-all shadow-sm cursor-pointer group h-full">
+          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 border border-emerald-100/50">🎨</div>
+          <h3 className="text-xl font-bold mb-2 text-slate-800 tracking-tight">{language === 'hu' ? 'Testreszabás' : 'Customization'}</h3>
+          <p className="text-slate-400 text-xs uppercase tracking-wider font-bold leading-relaxed">{language === 'hu' ? 'Változtass nevet, ikont és állítsd be, milyen adatokat láthassanak a megtalálók a profilodon.' : 'Change names, icons, and set what data finders can see on your public profile.'}</p>
+        </div>
+
+        <div className="bg-emerald-600 p-8 rounded-[2rem] shadow-lg shadow-emerald-100 relative overflow-hidden group h-full">
+          <div className="relative z-10">
+            <h3 className="text-xl font-bold mb-4 text-white tracking-tight">{t.security}</h3>
+            <ul className="space-y-3">
+              {[t.secEncrypted, t.secChat, t.secGPS].map((sec, idx) => (
+                <li key={idx} className="flex items-center gap-3 text-[10px] font-black text-emerald-50 uppercase tracking-widest"><span className="w-1.5 h-1.5 bg-white rounded-full"></span>{sec}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="absolute -right-4 -bottom-4 text-6xl opacity-20 rotate-12 group-hover:scale-110 transition-transform">🛡️</div>
+        </div>
       </section>
 
-      {/* MODAL */}
       <AnimatePresence>
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">

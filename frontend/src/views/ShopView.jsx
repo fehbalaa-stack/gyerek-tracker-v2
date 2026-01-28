@@ -13,18 +13,18 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
     const [viewAngle, setViewAngle] = useState('front');
     const [isFlipped, setIsFlipped] = useState(false);
     
-    // 🔥 Módosítva: "NEW" az alapértelmezett, ha nincs előre kiválasztott tracker
-    const [manualTrackerId, setManualTrackerId] = useState(selectedTrackerId ? "" : "NEW");
+    // 🔥 "NEW" az alapértelmezett, ha nincs előre kiválasztott tracker
+    const [manualTrackerId, setManualTrackerId] = useState(selectedTrackerId || "NEW");
 
     const SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
 
     // 🔥 Kombinált tracker figyelés + Új eszköz logika
     const targetTracker = useMemo(() => {
-        const idToFind = manualTrackerId || selectedTrackerId;
+        const idToFind = manualTrackerId;
         if (idToFind === "NEW") return { _id: null, name: language === 'hu' ? "Új eszköz" : "New Device", uniqueCode: "GEN_NEW", qrStyle: "classic" };
         if (!trackers || !idToFind) return null;
         return trackers.find(tr => tr._id === idToFind);
-    }, [trackers, selectedTrackerId, manualTrackerId, language]);
+    }, [trackers, manualTrackerId, language]);
 
     const products = [
         {
@@ -56,11 +56,6 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             return;
         }
 
-        if (!selectedSize) {
-            toast.error(language === 'hu' ? 'Válassz méretet!' : 'Select a size!');
-            return;
-        }
-
         const cartItem = {
             productId: selectedProduct.id,
             name: selectedProduct.name,
@@ -68,8 +63,8 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             size: selectedSize,
             icon: selectedProduct.icon,
             qrStyle: targetTracker.qrStyle || 'classic',
-            // 🔥 Ha targetTracker._id null, a backend tudni fogja, hogy ez egy ÚJ eszköz
-            trackerId: targetTracker._id, 
+            // 🔥 A backend ebből tudja: ÚJ (null) vagy MEGLÉVŐ (ID)
+            targetTrackerId: targetTracker._id, 
             uniqueCode: targetTracker._id ? targetTracker.uniqueCode : "NEW_DEVICE",
             trackerName: targetTracker.name,
             cartId: Date.now()
@@ -97,7 +92,7 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                     <div className="flex-1">
                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{language === 'hu' ? 'Vásárlás típusa' : 'Purchase type'}</p>
                         <select 
-                            value={manualTrackerId || selectedTrackerId || "NEW"}
+                            value={manualTrackerId}
                             onChange={(e) => setManualTrackerId(e.target.value)}
                             className="bg-transparent text-xl font-black text-slate-800 outline-none cursor-pointer w-full max-w-[400px] truncate"
                         >
@@ -112,9 +107,6 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                         </select>
                     </div>
                 </div>
-                {targetTracker && targetTracker._id && (
-                    <button onClick={() => {setManualTrackerId("NEW"); setMode('dashboard')}} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors">Vissza a listához</button>
-                )}
             </div>
 
             {!selectedProduct ? (
@@ -133,7 +125,7 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                     {/* BAL OLDAL: ELŐNÉZET */}
                     <div className="space-y-6">
                         <div className="bg-white border border-emerald-50 rounded-[3rem] p-10 aspect-square flex flex-col items-center justify-center relative shadow-inner overflow-hidden">
-                            <div className="absolute top-8 left-10 text-[9px] font-black uppercase tracking-[0.3em] text-emerald-600/40">3D Preview • {viewAngle}</div>
+                            <div className="absolute top-8 left-10 text-[9px] font-black uppercase tracking-[0.3em] text-emerald-600/40">Preview • {selectedProduct.name}</div>
                             
                             <motion.div 
                                 key={viewAngle}
@@ -143,18 +135,6 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                             >
                                 {selectedProduct.icon}
                             </motion.div>
-
-                            <div className="flex gap-3 mt-12">
-                                {['front', 'side', 'back'].map(angle => (
-                                    <button 
-                                        key={angle}
-                                        onClick={() => setViewAngle(angle)}
-                                        className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${viewAngle === angle ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}
-                                    >
-                                        {angle}
-                                    </button>
-                                ))}
-                            </div>
                         </div>
                     </div>
 
@@ -171,13 +151,6 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                                         <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{selectedProduct.name}</h2>
                                         <button onClick={() => setSelectedProduct(null)} className="text-2xl opacity-20 hover:opacity-100 transition-opacity">✕</button>
                                     </div>
-                                    <div className="space-y-4">
-                                        {selectedProduct.features.map((f, i) => (
-                                            <div key={i} className="flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> {f}
-                                            </div>
-                                        ))}
-                                    </div>
                                     <div className="mt-12 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 italic text-[11px] text-slate-500 font-medium leading-relaxed">
                                         {targetTracker && !targetTracker._id ? (
                                             <span className="text-emerald-600 font-bold">
@@ -186,16 +159,17 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                                                 : '✨ You are buying a new oooVooo device. You can create a completely new profile after payment.'}
                                             </span>
                                         ) : (
-                                            language === 'hu' 
-                                            ? `✨ A rendelésed a meglévő "${targetTracker?.name}" (${targetTracker?.uniqueCode}) kódjával készül el.` 
-                                            : `✨ Your order will be printed with the unique "${targetTracker?.name}" (${targetTracker?.uniqueCode}) code.`
+                                            <span className="text-blue-600 font-bold">
+                                                {language === 'hu' 
+                                                ? `🔄 A rendelésed a meglévő "${targetTracker?.name}" profiljához lesz rendelve új skinként.` 
+                                                : `🔄 This order will be added as a new skin to your existing "${targetTracker?.name}" profile.`}
+                                            </span>
                                         )}
                                     </div>
                                 </div>
                                 <button 
-                                    disabled={!targetTracker}
                                     onClick={() => setIsFlipped(true)} 
-                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-20 disabled:cursor-not-allowed"
+                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl"
                                 >
                                     {language === 'hu' ? 'Méretválasztás →' : 'Select Size →'}
                                 </button>
@@ -207,7 +181,7 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                             >
                                 <div>
                                     <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
-                                        <h2 className="text-xl font-black uppercase tracking-widest text-emerald-400">Mérettáblázat</h2>
+                                        <h2 className="text-xl font-black uppercase tracking-widest text-emerald-400">Méret</h2>
                                         <button onClick={() => setIsFlipped(false)} className="text-[10px] font-bold text-white/40 uppercase">Vissza</button>
                                     </div>
                                     <div className="grid grid-cols-4 gap-3">
