@@ -5,12 +5,32 @@ import { useAuth } from '../context/AuthContext';
 import { translations } from '../utils/translations';
 import { QRCodeSVG } from 'qrcode.react';
 
-export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
+export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpdateTracker }) {
   const { language, user } = useAuth();
   
   const t = useMemo(() => {
     return translations[language] || translations.hu;
   }, [language]);
+
+  const [orderCount, setOrderCount] = useState(0);
+
+  // 🔥 Rendelések számának lekérése a statisztikához
+  useEffect(() => {
+    const fetchOrderCount = async () => {
+      try {
+        const stored = localStorage.getItem('oooVooo_user');
+        const userData = stored ? JSON.parse(stored) : null;
+        if (!userData?.token) return;
+
+        const res = await fetch('https://oovoo-backend.onrender.com/api/orders/my-orders', {
+          headers: { 'Authorization': `Bearer ${userData.token}` }
+        });
+        const data = await res.json();
+        if (data.success) setOrderCount(data.orders.length);
+      } catch (err) { console.error("Rendelések betöltése hiba:", err); }
+    };
+    fetchOrderCount();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -115,7 +135,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
 
       <section>
         <div className="bg-white border border-emerald-50 rounded-[2.5rem] shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-3">
-          <div onClick={() => setMode('manage')} className="md:col-span-2 p-10 cursor-pointer hover:bg-slate-50 transition-all group relative border-b md:border-b-0 md:border-r border-emerald-50">
+          <div onClick={() => setMode('manage')} className="md:col-span-1 p-10 cursor-pointer hover:bg-slate-50 transition-all group relative border-b md:border-b-0 md:border-r border-emerald-50">
             <div className="relative z-10">
               <h2 className="text-emerald-600 font-black text-xs uppercase tracking-[0.2em] mb-4">{t.myTrackers}</h2>
               <div className="flex items-baseline gap-4">
@@ -125,6 +145,18 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
               <p className="mt-8 text-sm text-slate-500 group-hover:text-emerald-600 transition-colors flex items-center gap-2 font-bold uppercase tracking-widest">{t.manageDevices} <span className="text-emerald-500">→</span></p>
             </div>
             <div className="absolute -right-4 -bottom-4 text-[8rem] opacity-[0.03] group-hover:opacity-[0.06] transition-all rotate-12 select-none pointer-events-none">📱</div>
+          </div>
+
+          <div onClick={() => setMode('orders')} className="p-10 cursor-pointer hover:bg-slate-50 transition-all group relative border-b md:border-b-0 md:border-r border-emerald-50">
+            <div className="relative z-10">
+              <h2 className="text-blue-600 font-black text-xs uppercase tracking-[0.2em] mb-4">{language === 'hu' ? '📦 RENDELÉSEK' : '📦 ORDERS'}</h2>
+              <div className="flex items-baseline gap-4">
+                <p className="text-7xl font-black tracking-tighter text-slate-900">{orderCount}</p>
+                <span className="text-xl font-bold text-slate-400 uppercase tracking-widest">{language === 'hu' ? 'Tétel' : 'Items'}</span>
+              </div>
+              <p className="mt-8 text-sm text-slate-500 group-hover:text-blue-600 transition-colors flex items-center gap-2 font-bold uppercase tracking-widest">{language === 'hu' ? 'Követés' : 'Track'} <span className="text-blue-500">→</span></p>
+            </div>
+            <div className="absolute -right-4 -bottom-4 text-[8rem] opacity-[0.03] group-hover:opacity-[0.06] transition-all -rotate-12 select-none pointer-events-none">📦</div>
           </div>
 
           <button onClick={() => setShowAddModal(true)} className="p-10 flex flex-col items-center justify-center gap-4 bg-emerald-50/20 hover:bg-emerald-50 transition-all group">
@@ -150,13 +182,13 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
                   className="w-full h-full relative preserve-3d"
                   whileHover={{ rotateY: 180 }}
                   transition={{ 
-                    duration: 1.2, // 🔥 LASSÍTVA a prémium érzetért
+                    duration: 1.2,
                     type: "spring", 
-                    stiffness: 45, // Lágyabb rugózás
+                    stiffness: 45, 
                     damping: 20 
                   }}
                 >
-                  {/* ELŐLAP - TISZTA QR PREVIEW */}
+                  {/* ELŐLAP */}
                   <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 rounded-[2.5rem] p-6 flex items-center gap-5 shadow-sm transition-all group-hover:border-emerald-200 overflow-hidden">
                     <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
                         <img 
@@ -165,21 +197,40 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
                           className="absolute inset-0 w-full h-full object-contain p-2 z-10"
                           onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'}
                         />
-                        {/* Háttér réteg, hogy az emoji véletlenül se látsszon át */}
                         <div className="absolute inset-0 bg-slate-50 z-0"></div>
                     </div>
 
                     <div className="flex-1 overflow-hidden text-left">
                       <div className="flex items-center gap-2 mb-1">
-                        {/* 🔥 AZ EMOJI CSAK ITT JELENIK MEG, A NÉV ELŐTT */}
                         <span className="text-xl shrink-0">{tracker.icon || "📍"}</span>
                         <h3 className="font-black text-lg text-slate-800 tracking-tight truncate">{tracker.name}</h3>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                        <p className="text-[9px] text-emerald-600 font-black tracking-[0.1em] uppercase italic">{language === 'hu' ? 'Aktív' : 'Active'}</p>
-                      </div>
-                      <div className="mt-3 text-[9px] text-slate-300 font-black uppercase tracking-widest truncate">ID: {tracker.uniqueCode}</div>
+                      
+                      {/* 🔥 STÍLUS VÁLASZTÓ PÖTTYÖK - MARCSIKA-LOGIKA */}
+                      {tracker.skins && tracker.skins.length > 0 && (
+                        <div className="flex gap-1.5 my-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); onUpdateTracker(tracker._id, { qrStyle: 'classic' }); }}
+                            className={`w-4 h-4 rounded-full border-2 transition-all ${tracker.qrStyle === 'classic' ? 'border-emerald-500 scale-110' : 'border-slate-200 opacity-40'}`}
+                            style={{ backgroundColor: '#f1f5f9' }}
+                            title="Classic"
+                          />
+                          {tracker.skins.map((skin, sIdx) => (
+                            <button 
+                              key={sIdx}
+                              onClick={(e) => { e.stopPropagation(); onUpdateTracker(tracker._id, { qrStyle: skin.styleId }); }}
+                              className={`w-4 h-4 rounded-full border-2 transition-all ${tracker.qrStyle === skin.styleId ? 'border-emerald-500 scale-110 shadow-sm' : 'border-slate-200 opacity-40 hover:opacity-100'}`}
+                              style={{ 
+                                backgroundImage: `url(https://oovoo-backend.onrender.com/schemes/${skin.styleId}.png)`,
+                                backgroundSize: 'cover'
+                              }}
+                              title={skin.styleId}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-1 text-[9px] text-slate-300 font-black uppercase tracking-widest truncate">ID: {tracker.uniqueCode}</div>
                     </div>
                   </div>
 
@@ -199,6 +250,7 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
         </section>
       )}
 
+      {/* ALSÓ KÁRTYÁK */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div onClick={() => setMode('shop')} className="bg-white border border-emerald-50 p-8 rounded-[2rem] hover:border-emerald-200 transition-all shadow-sm cursor-pointer group h-full">
           <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 border border-emerald-100/50">🛒</div>
@@ -206,37 +258,20 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded }) {
           <p className="text-slate-400 text-xs uppercase tracking-wider font-bold leading-relaxed">{language === 'hu' ? 'Vásárolj egyedi QR-kóddal ellátott kiegészítőket, pólókat és matricákat eszközeidhez.' : 'Buy custom QR-coded accessories, t-shirts, and stickers for your devices.'}</p>
         </div>
 
-        <div className="bg-emerald-600 p-8 rounded-[2rem] shadow-lg shadow-emerald-100 relative overflow-hidden group h-full">
+        <div onClick={() => setMode('orders')} className="bg-slate-900 p-8 rounded-[2rem] shadow-xl relative overflow-hidden group h-full border border-slate-800 cursor-pointer">
           <div className="relative z-10">
-            <h3 className="text-xl font-bold mb-4 text-white tracking-tight">{t.security}</h3>
-            <ul className="space-y-3">
-              {[t.secEncrypted, t.secChat, t.secGPS].map((sec, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-[10px] font-black text-emerald-50 uppercase tracking-widest"><span className="w-1.5 h-1.5 bg-white rounded-full"></span>{sec}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="absolute -right-4 -bottom-4 text-6xl opacity-20 rotate-12 group-hover:scale-110 transition-transform">🛡️</div>
-        </div>
-
-        <div onClick={() => setMode('manage')} className="bg-white border border-emerald-50 p-8 rounded-[2rem] hover:border-emerald-200 transition-all shadow-sm cursor-pointer group h-full">
-          <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 border border-emerald-100/50">🎨</div>
-          <h3 className="text-xl font-bold mb-2 text-slate-800 tracking-tight">{language === 'hu' ? 'Testreszabás' : 'Customization'}</h3>
-          <p className="text-slate-400 text-xs uppercase tracking-wider font-bold leading-relaxed">{language === 'hu' ? 'Változtass nevet, ikont és állítsd be, milyen adatokat láthassanak a megtalálók a profilodon.' : 'Change names, icons, and set what data finders can see on your public profile.'}</p>
-        </div>
-
-        <div className="bg-slate-900 p-8 rounded-[2rem] shadow-xl relative overflow-hidden group h-full border border-slate-800">
-          <div className="relative z-10">
-            <h3 className="text-xl font-bold mb-2 text-white tracking-tight">{language === 'hu' ? 'Hogyan működik?' : 'How it works?'}</h3>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">{language === 'hu' ? 'Párosítsd az eszközt, helyezd el a tárgyaidon, és ha valaki beolvassa a QR-t, azonnal értesítünk.' : 'Pair your device, place it on your items, and if someone scans the QR, we notify you immediately.'}</p>
+            <h3 className="text-xl font-bold mb-2 text-white tracking-tight">{language === 'hu' ? 'Rendeléskövetés' : 'Order Tracking'}</h3>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">{language === 'hu' ? 'Nézd meg, hol tartanak a meglévő eszközeidhez rendelt új kiegészítők.' : 'Check the status of new accessories ordered for your existing devices.'}</p>
             <div className="mt-6 flex gap-2">
-              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black text-emerald-400 uppercase tracking-widest">Scan</span>
-              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black text-emerald-400 uppercase tracking-widest">Connect</span>
+              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black text-emerald-400 uppercase tracking-widest">Skins</span>
+              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black text-emerald-400 uppercase tracking-widest">Track</span>
             </div>
           </div>
-          <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:rotate-12 transition-transform">💡</div>
+          <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:rotate-12 transition-transform">📦</div>
         </div>
       </section>
 
+      {/* MODAL */}
       <AnimatePresence>
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
