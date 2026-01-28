@@ -1,3 +1,4 @@
+// controllers/trackerController.js
 import Tracker from '../models/Tracker.js';
 import Log from '../models/Log.js'; 
 import { customAlphabet } from 'nanoid';
@@ -7,12 +8,10 @@ import path from 'path';
 
 const generateUniqueId = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 10);
 
-// --- 1. JAVÍTOTT PUBLIKUS LEKÉRÉS (Nincs automatikus log mentés) ---
+// --- 1. JAVÍTOTT PUBLIKUS LEKÉRÉS ---
 export const getPublicTracker = async (req, res) => {
   try {
     const { code } = req.params;
-    console.log(`🔥 GET PUBLIC TRACKER HIVAS ERKEZETT! Kód: ${code}`);
-
     const tracker = await Tracker.findOne({ uniqueCode: code })
       .populate('owner', 'name bio email phone emergencyPhone language')
       .lean(); 
@@ -22,32 +21,21 @@ export const getPublicTracker = async (req, res) => {
     }
 
     const tId = tracker._id.toString();
-
-    const responseData = {
+    return res.json({
       success: true,
       extractedId: tId,
-      tracker: {
-        ...JSON.parse(JSON.stringify(tracker)),
-        _id: tId,
-        id: tId
-      },
+      tracker: { ...tracker, _id: tId, id: tId },
       owner: tracker.owner
-    };
-
-    console.log("🚀 KÜLDÖTT ADAT (extractedId):", responseData.extractedId);
-    return res.json(responseData);
-    
+    });
   } catch (error) {
-    console.error('❌ Hiba a publikus lekérésnél:', error);
     res.status(500).json({ success: false, message: 'Szerver hiba' });
   }
 };
 
-// --- 2. ÚJ VÉGPONT A VALÓDI GPS ADATOKHOZ ---
+// --- 2. LOG PUBLIC SCAN ---
 export const logPublicScan = async (req, res) => {
   try {
     const { trackerId, lat, lng, device } = req.body;
-
     if (!lat || !lng || parseFloat(lat) === 0 || parseFloat(lng) === 0) {
       return res.status(400).json({ success: false, message: 'Érvénytelen GPS koordináták' });
     }
@@ -59,25 +47,22 @@ export const logPublicScan = async (req, res) => {
       trackerId: tracker._id,
       ownerId: tracker.owner,
       type: 'SCAN',
-      location: {
-        type: 'Point',
-        coordinates: [parseFloat(lng), parseFloat(lat)]
-      },
+      location: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
       userAgent: device || req.headers['user-agent']
     });
 
-    console.log(`✅ VALÓDI GPS Log mentve: ${lat}, ${lng}`);
     return res.json({ success: true });
   } catch (error) {
-    console.error("❌ Hiba a logPublicScan mentésnél:", error);
     res.status(500).json({ success: false });
   }
 };
 
+// --- 3. CREATE TRACKER (Skins logikával bővítve) ---
 export const createTracker = async (req, res) => {
   try {
     const { name, type, icon, qrStyle, customImage } = req.body;
     const ownerId = req.user.id;
+    const selectedStyle = qrStyle || 'classic';
 
     let uniqueCode;
     let isUnique = false;
@@ -89,27 +74,27 @@ export const createTracker = async (req, res) => {
       attempts++;
     }
 
-    if (!isUnique) return res.status(500).json({ success: false, message: 'ID generálási hiba.' });
-
     const tracker = await Tracker.create({
       owner: ownerId,
       name: name || `oooVooo-${uniqueCode}`,
       icon: icon || '📍', 
-      type: type || 'car',
-      qrStyle: qrStyle || 'animals_bear',
+      type: type || 'generic',
+      qrStyle: selectedStyle,
+      // 🔥 Automatikusan hozzáadjuk az induló skint a listához
+      skins: [{ styleId: selectedStyle, purchasedAt: new Date() }],
       uniqueCode,
       customImage: customImage || null,
       status: 'active',
       permissions: { showName: false, showPhone: false, showEmail: false, showSocial: false, allowChat: true }
     });
 
+    // QR Generálás
     try {
       const qrDir = path.resolve('./public/qrcodes');
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
       const scanUrl = `https://oovoo-backend.onrender.com/scan/${uniqueCode}`;      
-      const qrBuffer = await generateStyledQR(scanUrl, tracker.qrStyle);
-      const qrPath = path.join(qrDir, `${uniqueCode}.png`);
-      fs.writeFileSync(qrPath, qrBuffer);
+      const qrBuffer = await generateStyledQR(scanUrl, selectedStyle);
+      fs.writeFileSync(path.join(qrDir, `${uniqueCode}.png`), qrBuffer);
     } catch (qrError) {
       console.error('⚠️ QR hiba:', qrError);
     }
@@ -121,62 +106,55 @@ export const createTracker = async (req, res) => {
   }
 };
 
+// --- 4. UPDATE TRACKER (Skin gyűjtemény kezeléssel) ---
 export const updateTracker = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, icon, permissions, qrStyle } = req.body;
 
-    const updatedTracker = await Tracker.findOneAndUpdate(
-      { _id: id, owner: req.user.id },
-      { $set: { name, icon, permissions, qrStyle } },
-      { new: true, runValidators: true }
-    );
+    const tracker = await Tracker.findOne({ _id: id, owner: req.user.id });
+    if (!tracker) return res.status(404).json({ message: 'Nincs találat.' });
 
-    if (!updatedTracker) return res.status(404).json({ message: 'Nincs találat.' });
-
+    if (name) tracker.name = name;
+    if (icon) tracker.icon = icon;
+    if (permissions) tracker.permissions = permissions;
+    
     if (qrStyle) {
-        try {
-            const scanUrl = `https://oovoo-backend.onrender.com/scan/${updatedTracker.uniqueCode}`;
-            const qrBuffer = await generateStyledQR(scanUrl, updatedTracker.qrStyle);
-            fs.writeFileSync(path.resolve(`./public/qrcodes/${updatedTracker.uniqueCode}.png`), qrBuffer);
-        } catch (e) { 
-            console.error("⚠️ Update QR hiba:", e);
-        }
+      tracker.qrStyle = qrStyle;
+      // 🔥 Ha olyan stílust választ, ami még nincs a gyűjteményében, adjuk hozzá
+      const hasSkin = tracker.skins.some(s => s.styleId === qrStyle);
+      if (!hasSkin) {
+        tracker.skins.push({ styleId: qrStyle, purchasedAt: new Date() });
+      }
+
+      // QR Újragenerálás az új stílussal
+      try {
+        const scanUrl = `https://oovoo-backend.onrender.com/scan/${tracker.uniqueCode}`;
+        const qrBuffer = await generateStyledQR(scanUrl, qrStyle);
+        fs.writeFileSync(path.resolve(`./public/qrcodes/${tracker.uniqueCode}.png`), qrBuffer);
+      } catch (e) { 
+        console.error("⚠️ Update QR hiba:", e);
+      }
     }
 
-    if (req.io) req.io.emit('tracker_updated', { ownerId: req.user.id, tracker: updatedTracker });
-    res.json({ success: true, tracker: updatedTracker });
+    await tracker.save();
+
+    if (req.io) req.io.emit('tracker_updated', { ownerId: req.user.id, tracker });
+    res.json({ success: true, tracker });
   } catch (error) {
-    console.error('❌ Frissítési hiba:', error);
     res.status(500).json({ error: 'Frissítési hiba.' });
   }
 };
 
-// ✅ JAVÍTVA: Hozzáadva a populate('owner'), hogy a kártya lássa a jogosultságokat
 export const getMyTrackers = async (req, res) => {
   try {
     const trackers = await Tracker.find({ owner: req.user.id })
       .populate('owner', 'phone phoneNumber instagram facebook emergencyPhone')
       .sort({ createdAt: -1 })
       .lean(); 
-    
     res.json(trackers);
   } catch (error) {
     res.status(500).json({ error: 'Hiba a lekérdezésnél.' });
-  }
-};
-
-export const getTrackerLogs = async (req, res) => {
-  try {
-    const logs = await Log.find({ ownerId: req.user.id })
-      .populate({
-        path: 'trackerId',
-        select: 'name icon uniqueCode'
-      })
-      .sort({ date: -1 });
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ error: 'Hiba a logok lekérésekor' });
   }
 };
 

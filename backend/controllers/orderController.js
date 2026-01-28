@@ -24,17 +24,36 @@ export const handleStripeWebhook = async (req, res) => {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     
-    // Ha a metadata-ban küldtünk orderId-kat (ahogy a routes-ban javítottuk)
     const orderIds = session.metadata.orderIds ? JSON.parse(session.metadata.orderIds) : [];
 
     try {
       if (orderIds.length > 0) {
-        // Frissítjük a már meglévő (pending) rendeléseket 'paid' státuszra
+        // 1. Rendelések lekérése a feldolgozáshoz
+        const paidOrders = await Order.find({ _id: { $in: orderIds } });
+
+        for (const order of paidOrders) {
+          // 🔥 MARCSIKA-LOGIKA: Ha meglévő trackerhez jött a rendelés, adjuk hozzá a skint
+          if (order.targetTrackerId) {
+            await Tracker.findByIdAndUpdate(order.targetTrackerId, {
+              $push: { 
+                skins: { 
+                  styleId: order.qrStyle, 
+                  purchasedAt: new Date(),
+                  orderId: order._id 
+                } 
+              },
+              $set: { qrStyle: order.qrStyle } // Az új vásárlás lesz az aktív stílus
+            });
+            console.log(`✨ Skin (${order.qrStyle}) hozzáadva a trackerhez: ${order.targetTrackerId}`);
+          }
+        }
+
+        // 2. Frissítjük a rendeléseket 'paid' státuszra
         await Order.updateMany(
           { _id: { $in: orderIds } },
           { $set: { paymentStatus: 'paid' } }
         );
-        console.log(`✅ Rendelések fizetve: ${orderIds.join(', ')}`);
+        console.log(`✅ Rendelések fizetve és feldolgozva: ${orderIds.join(', ')}`);
       }
     } catch (dbErr) {
       console.error("❌ Hiba a webhook frissítéskor:", dbErr);
@@ -49,7 +68,7 @@ export const handleStripeWebhook = async (req, res) => {
  */
 export const createOrder = async (req, res) => {
   try {
-    const { productType, uniqueCode, qrStyle, customerName, customerEmail, size } = req.body;
+    const { productType, uniqueCode, qrStyle, customerName, customerEmail, size, targetTrackerId } = req.body;
     const userId = req.user.id;
 
     const newOrder = new Order({
@@ -60,6 +79,7 @@ export const createOrder = async (req, res) => {
       uniqueCode,
       qrStyle,
       size: size || 'N/A',
+      targetTrackerId: targetTrackerId || null, // 🔥 Eltároljuk, ha meglévő eszközhöz kérik
       status: 'pending'
     });
 
@@ -72,12 +92,9 @@ export const createOrder = async (req, res) => {
 
 /**
  * Összes rendelés lekérése (Admin felülethez)
- * 🔥 JAVÍTVA: Rugalmasabb lekérés, hogy mindenképp látszódjanak a rendelések
  */
 export const getAllOrders = async (req, res) => {
   try {
-    // Kérjük le az összeset. A populate-ot try-catch nélkül hagyjuk, 
-    // de ha a userId nincs meg, csak üres marad a mező.
     const orders = await Order.find()
       .sort({ createdAt: -1 });
 

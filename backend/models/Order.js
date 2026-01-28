@@ -4,15 +4,16 @@ const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   customerName: { type: String, required: true },
   customerEmail: { type: String, required: true },
-  // Kicsit rugalmasabb enum, ha esetleg elírás lenne a frontendről
+  
+  // 🔥 MARCSIKA-LOGIKA: Ha van trackerId, akkor meglévő eszközhöz adunk új skint
+  targetTrackerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tracker', default: null },
+  
   productType: { 
     type: String, 
     required: true 
   },
-  // HOZZÁADVA: A méret elengedhetetlen a pólóhoz/pulcsihoz
   size: { type: String, default: 'N/A' },
   uniqueCode: { type: String, required: true }, 
-  // qrStyle: ha véletlenül nem jönne át, kap egy alapértelmezettet, hogy ne szálljon el a mentés
   qrStyle: { type: String, default: 'default' },    
   status: { 
     type: String, 

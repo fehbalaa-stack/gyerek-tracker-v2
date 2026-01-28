@@ -13,17 +13,18 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
     const [viewAngle, setViewAngle] = useState('front');
     const [isFlipped, setIsFlipped] = useState(false);
     
-    // 🔥 Új állapot a kézzel választott trackernek
-    const [manualTrackerId, setManualTrackerId] = useState("");
+    // 🔥 Módosítva: "NEW" az alapértelmezett, ha nincs előre kiválasztott tracker
+    const [manualTrackerId, setManualTrackerId] = useState(selectedTrackerId ? "" : "NEW");
 
     const SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
 
-    // 🔥 Kombinált tracker figyelés
+    // 🔥 Kombinált tracker figyelés + Új eszköz logika
     const targetTracker = useMemo(() => {
         const idToFind = manualTrackerId || selectedTrackerId;
+        if (idToFind === "NEW") return { _id: null, name: language === 'hu' ? "Új eszköz" : "New Device", uniqueCode: "GEN_NEW", qrStyle: "classic" };
         if (!trackers || !idToFind) return null;
         return trackers.find(tr => tr._id === idToFind);
-    }, [trackers, selectedTrackerId, manualTrackerId]);
+    }, [trackers, selectedTrackerId, manualTrackerId, language]);
 
     const products = [
         {
@@ -50,9 +51,8 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
     ];
 
     const handleAddToCart = () => {
-        // 🔥 Védelem a null hiba ellen
         if (!targetTracker) {
-            toast.error(language === 'hu' ? 'Válassz egy eszközt!' : 'Please select a tracker!');
+            toast.error(language === 'hu' ? 'Válassz egy opciót!' : 'Please select an option!');
             return;
         }
 
@@ -67,9 +67,11 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             price: selectedProduct.price,
             size: selectedSize,
             icon: selectedProduct.icon,
-            uniqueCode: targetTracker.uniqueCode,
+            qrStyle: targetTracker.qrStyle || 'classic',
+            // 🔥 Ha targetTracker._id null, a backend tudni fogja, hogy ez egy ÚJ eszköz
+            trackerId: targetTracker._id, 
+            uniqueCode: targetTracker._id ? targetTracker.uniqueCode : "NEW_DEVICE",
             trackerName: targetTracker.name,
-            trackerId: targetTracker._id, // Fontos a backendnek
             cartId: Date.now()
         };
 
@@ -77,7 +79,6 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
         toast.success(language === 'hu' ? 'Kosárba téve!' : 'Added to cart!');
         setSelectedProduct(null);
         setIsFlipped(false);
-        setManualTrackerId(""); // Alaphelyzetbe állítás
     };
 
     return (
@@ -85,30 +86,34 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             
             {/* KIJELÖLT TRACKER INFÓ / VÁLASZTÓ */}
             <div className="bg-white border border-emerald-50 rounded-[2.5rem] p-6 mb-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shadow-inner overflow-hidden">
-                        {targetTracker ? (
+                <div className="flex items-center gap-6 w-full md:w-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex-shrink-0 flex items-center justify-center border border-slate-100 shadow-inner overflow-hidden">
+                        {targetTracker && targetTracker._id ? (
                             <img src={`https://oovoo-backend.onrender.com/schemes/${targetTracker.qrStyle}.png`} className="w-10 h-10 object-contain" alt="QR" />
                         ) : (
-                            <span className="text-2xl opacity-20">🔍</span>
+                            <span className="text-2xl">🆕</span>
                         )}
                     </div>
-                    <div>
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{language === 'hu' ? 'Eszköz kiválasztása' : 'Select tracker'}</p>
+                    <div className="flex-1">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{language === 'hu' ? 'Vásárlás típusa' : 'Purchase type'}</p>
                         <select 
-                            value={targetTracker?._id || ""}
+                            value={manualTrackerId || selectedTrackerId || "NEW"}
                             onChange={(e) => setManualTrackerId(e.target.value)}
-                            className="bg-transparent text-xl font-black text-slate-800 outline-none cursor-pointer"
+                            className="bg-transparent text-xl font-black text-slate-800 outline-none cursor-pointer w-full max-w-[400px] truncate"
                         >
-                            <option value="">{language === 'hu' ? '-- Válassz eszközt --' : '-- Select one --'}</option>
-                            {trackers.map(tr => (
-                                <option key={tr._id} value={tr._id}>{tr.name} ({tr.uniqueCode})</option>
-                            ))}
+                            <option value="NEW">🆕 {language === 'hu' ? 'ÚJ ESZKÖZ REGISZTRÁLÁSA' : 'REGISTER NEW DEVICE'}</option>
+                            {trackers.length > 0 && (
+                                <optgroup label={language === 'hu' ? 'MEGLÉVŐ ESZKÖZ FRISSÍTÉSE' : 'UPDATE EXISTING DEVICE'}>
+                                    {trackers.map(tr => (
+                                        <option key={tr._id} value={tr._id}>{tr.name} ({tr.uniqueCode})</option>
+                                    ))}
+                                </optgroup>
+                            )}
                         </select>
                     </div>
                 </div>
-                {targetTracker && (
-                    <button onClick={() => {setManualTrackerId(""); setMode('dashboard')}} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors">Vissza a listához</button>
+                {targetTracker && targetTracker._id && (
+                    <button onClick={() => {setManualTrackerId("NEW"); setMode('dashboard')}} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors">Vissza a listához</button>
                 )}
             </div>
 
@@ -173,20 +178,24 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="mt-12 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 italic text-[11px] text-slate-500 font-medium">
-                                        {!targetTracker ? (
-                                            <span className="text-rose-500 font-bold">{language === 'hu' ? 'Válassz egy eszközt felül!' : 'Select a tracker above first!'}</span>
+                                    <div className="mt-12 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 italic text-[11px] text-slate-500 font-medium leading-relaxed">
+                                        {targetTracker && !targetTracker._id ? (
+                                            <span className="text-emerald-600 font-bold">
+                                                {language === 'hu' 
+                                                ? '✨ Új oooVooo eszközt vásárolsz. A fizetés után egy teljesen új profilt hozhatsz létre.' 
+                                                : '✨ You are buying a new oooVooo device. You can create a completely new profile after payment.'}
+                                            </span>
                                         ) : (
                                             language === 'hu' 
-                                            ? `A rendelésed az egyedi "${targetTracker.name}" (${targetTracker.uniqueCode}) kóddal készül el.` 
-                                            : `Your order will be printed with the unique "${targetTracker.name}" (${targetTracker.uniqueCode}) code.`
+                                            ? `✨ A rendelésed a meglévő "${targetTracker?.name}" (${targetTracker?.uniqueCode}) kódjával készül el.` 
+                                            : `✨ Your order will be printed with the unique "${targetTracker?.name}" (${targetTracker?.uniqueCode}) code.`
                                         )}
                                     </div>
                                 </div>
                                 <button 
                                     disabled={!targetTracker}
                                     onClick={() => setIsFlipped(true)} 
-                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-20"
+                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl disabled:opacity-20 disabled:cursor-not-allowed"
                                 >
                                     {language === 'hu' ? 'Méretválasztás →' : 'Select Size →'}
                                 </button>

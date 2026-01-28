@@ -23,10 +23,19 @@ const trackerSchema = new mongoose.Schema(
       enum: ['car', 'pet', 'bag', 'key', 'generic'], 
       default: 'generic'
     },
+    // 🔥 EZ MARAD AZ AKTUÁLIS/ALAPÉRTELMEZETT STÍLUS (pl. a Dashboardon)
     qrStyle: {
       type: String,
-      default: 'classic' // 🔥 JAVÍTVA: 'default'-ról 'classic'-ra a fájlnév szinkron miatt
+      default: 'classic' 
     },
+    // 🔥 ÚJ: Itt tároljuk az összes megvásárolt kinézetet ehhez az eszközhöz
+    skins: [
+      {
+        styleId: { type: String, required: true }, // pl. 'panda', 'dino'
+        purchasedAt: { type: Date, default: Date.now },
+        orderId: { type: String } // Ha össze akarod kötni a webshop rendeléssel
+      }
+    ],
     uniqueCode: {
       type: String,
       required: true,
@@ -44,8 +53,8 @@ const trackerSchema = new mongoose.Schema(
       showPhone: { type: Boolean, default: false },
       showEmail: { type: Boolean, default: false },
       showSocial: { type: Boolean, default: false },
-      showInstagram: { type: Boolean, default: false }, // 🔥 HOZZÁADVA
-      showFacebook: { type: Boolean, default: false },  // 🔥 HOZZÁADVA
+      showInstagram: { type: Boolean, default: false },
+      showFacebook: { type: Boolean, default: false },
       allowChat: { type: Boolean, default: true }
     }
   },
@@ -54,7 +63,7 @@ const trackerSchema = new mongoose.Schema(
   }
 );
 
-// JAVÍTOTT KASZKÁDOLT TÖRLÉS
+// JAVÍTOTT KASZKÁDOLT TÖRLÉS - Ez biztosítja, hogy a közös chat/log törlődjön, ha az eszközt törlik
 trackerSchema.pre('findOneAndDelete', async function(next) {
   try {
     const doc = await this.model.findOne(this.getQuery());

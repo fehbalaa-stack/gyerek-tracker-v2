@@ -19,7 +19,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 router.post('/create-checkout-session', authMiddleware, async (req, res) => {
     try {
         const { items, customerEmail } = req.body;
-        // Dinamikus import a körkörös függőségek elkerülésére
         const Order = (await import('../models/Order.js')).default;
 
         if (!items || items.length === 0) {
@@ -27,7 +26,6 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
         }
 
         // 1. LÉPÉS: Rendelések mentése az adatbázisba (pending státusszal)
-        // Így az AdminOrdersView már látni fogja őket a fizetés közben is
         const savedOrders = await Promise.all(items.map(async (item) => {
             return await Order.create({
                 userId: req.user.id,
@@ -37,7 +35,9 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
                 size: item.size || 'N/A',
                 uniqueCode: item.uniqueCode,
                 qrStyle: item.qrStyle || 'default',
-                status: 'pending', // Kezdő állapot
+                // 🔥 MARCSIKA-LOGIKA: Itt mentjük el, melyik meglévő eszközhöz tartozik (ha van ilyen)
+                targetTrackerId: item.trackerId || null, 
+                status: 'pending',
                 totalPrice: parseFloat(item.price?.toString().replace(/[^0-9.]/g, '') || 0)
             });
         }));
@@ -62,9 +62,9 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
             line_items,
             mode: 'payment',
             customer_email: customerEmail,
-            // 🔥 JAVÍTVA: A pontos beta1-es URL-re irányítunk vissza
             success_url: 'https://oovoo-backend.onrender.com/success',
             cancel_url: 'https://oovoo-backend.onrender.com/cancel',
+            // 🔥 METADATA: A webhook ebből tudja majd, melyik Order-eket kell paid-re állítani
             metadata: {
                 userId: req.user.id,
                 orderIds: JSON.stringify(savedOrders.map(o => o._id))
