@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -13,15 +13,30 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
     const [viewAngle, setViewAngle] = useState('front');
     const [isFlipped, setIsFlipped] = useState(false);
     
-    // 🔥 "NEW" az alapértelmezett, ha nincs előre kiválasztott tracker
+    // 🔥 Új állapotok a skinekhez
+    const [schemes, setSchemes] = useState([]);
+    const [selectedSkinId, setSelectedSkinId] = useState('classic');
+    
     const [manualTrackerId, setManualTrackerId] = useState(selectedTrackerId || "NEW");
 
     const SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
 
-    // 🔥 Kombinált tracker figyelés + Új eszköz logika
+    // 🔥 Skinek betöltése a választóhoz
+    useEffect(() => {
+        const fetchSchemes = async () => {
+            try {
+                const res = await fetch('https://oovoo-backend.onrender.com/api/schemes');
+                const data = await res.json();
+                setSchemes(data);
+                if (data.length > 0) setSelectedSkinId(data[0].id);
+            } catch (err) { console.error("Hiba a sémák betöltésekor:", err); }
+        };
+        fetchSchemes();
+    }, []);
+
     const targetTracker = useMemo(() => {
         const idToFind = manualTrackerId;
-        if (idToFind === "NEW") return { _id: null, name: language === 'hu' ? "Új eszköz" : "New Device", uniqueCode: "GEN_NEW", qrStyle: "classic" };
+        if (idToFind === "NEW") return { _id: null, name: language === 'hu' ? "Új eszköz" : "New Device", uniqueCode: "GEN_NEW" };
         if (!trackers || !idToFind) return null;
         return trackers.find(tr => tr._id === idToFind);
     }, [trackers, manualTrackerId, language]);
@@ -62,8 +77,8 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             price: selectedProduct.price,
             size: selectedSize,
             icon: selectedProduct.icon,
-            qrStyle: targetTracker.qrStyle || 'classic',
-            // 🔥 A backend ebből tudja: ÚJ (null) vagy MEGLÉVŐ (ID)
+            // 🔥 Most már a választott skin ID-t küldjük a kosárba!
+            qrStyle: selectedSkinId, 
             targetTrackerId: targetTracker._id, 
             uniqueCode: targetTracker._id ? targetTracker.uniqueCode : "NEW_DEVICE",
             trackerName: targetTracker.name,
@@ -79,12 +94,11 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
     return (
         <div className="max-w-7xl mx-auto py-10 px-6 animate-in fade-in duration-700">
             
-            {/* KIJELÖLT TRACKER INFÓ / VÁLASZTÓ */}
             <div className="bg-white border border-emerald-50 rounded-[2.5rem] p-6 mb-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-6 w-full md:w-auto">
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex-shrink-0 flex items-center justify-center border border-slate-100 shadow-inner overflow-hidden">
                         {targetTracker && targetTracker._id ? (
-                            <img src={`https://oovoo-backend.onrender.com/schemes/${targetTracker.qrStyle}.png`} className="w-10 h-10 object-contain" alt="QR" />
+                            <img src={`https://oovoo-backend.onrender.com/schemes/${selectedSkinId}.png`} className="w-10 h-10 object-contain" alt="QR" />
                         ) : (
                             <span className="text-2xl">🆕</span>
                         )}
@@ -122,24 +136,30 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
                     
-                    {/* BAL OLDAL: ELŐNÉZET */}
                     <div className="space-y-6">
                         <div className="bg-white border border-emerald-50 rounded-[3rem] p-10 aspect-square flex flex-col items-center justify-center relative shadow-inner overflow-hidden">
                             <div className="absolute top-8 left-10 text-[9px] font-black uppercase tracking-[0.3em] text-emerald-600/40">Preview • {selectedProduct.name}</div>
                             
-                            <motion.div 
-                                key={viewAngle}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-[12rem] drop-shadow-2xl"
-                            >
-                                {selectedProduct.icon}
-                            </motion.div>
+                            {/* 🔥 A termék ikonja mögött megjelenítjük a választott QR skint kis méretben */}
+                            <div className="relative">
+                                <motion.div 
+                                    key={selectedSkinId}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-[12rem] drop-shadow-2xl z-10 relative"
+                                >
+                                    {selectedProduct.icon}
+                                </motion.div>
+                                <img 
+                                    src={`https://oovoo-backend.onrender.com/schemes/${selectedSkinId}.png`} 
+                                    className="absolute -bottom-4 -right-4 w-20 h-20 object-contain opacity-80 border-2 border-white rounded-xl shadow-lg bg-white p-1" 
+                                    alt="Skin Preview" 
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* JOBB OLDAL: FLIP KONFIGURÁTOR */}
-                    <div className="relative h-[550px] perspective-1000">
+                    <div className="relative h-[650px] perspective-1000">
                         <motion.div
                             className="w-full h-full relative preserve-3d"
                             animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -147,11 +167,33 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                         >
                             <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 rounded-[3rem] p-10 shadow-xl flex flex-col justify-between">
                                 <div>
-                                    <div className="flex justify-between items-start mb-8">
+                                    <div className="flex justify-between items-start mb-6">
                                         <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{selectedProduct.name}</h2>
                                         <button onClick={() => setSelectedProduct(null)} className="text-2xl opacity-20 hover:opacity-100 transition-opacity">✕</button>
                                     </div>
-                                    <div className="mt-12 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 italic text-[11px] text-slate-500 font-medium leading-relaxed">
+
+                                    {/* 🔥 QR SKIN VÁLASZTÓ EGYSÉG */}
+                                    <div className="mb-8">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-4 block">
+                                            {language === 'hu' ? 'Válassz QR stílust' : 'Choose QR style'}
+                                        </label>
+                                        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+                                            {schemes.map((s) => (
+                                                <button
+                                                    key={s.id}
+                                                    onClick={() => setSelectedSkinId(s.id)}
+                                                    className={`w-14 h-14 rounded-2xl border-2 flex-shrink-0 transition-all p-1 bg-white ${selectedSkinId === s.id ? 'border-emerald-500 scale-110 shadow-md' : 'border-slate-100 opacity-60'}`}
+                                                >
+                                                    <img src={`https://oovoo-backend.onrender.com/schemes/${s.id}.png`} className="w-full h-full object-contain" alt={s.name} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center mt-1">
+                                            {schemes.find(s => s.id === selectedSkinId)?.name}
+                                        </p>
+                                    </div>
+
+                                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 italic text-[11px] text-slate-500 font-medium leading-relaxed">
                                         {targetTracker && !targetTracker._id ? (
                                             <span className="text-emerald-600 font-bold">
                                                 {language === 'hu' 
@@ -161,15 +203,15 @@ const ShopView = ({ trackers = [], selectedTrackerId, setMode, addToCart }) => {
                                         ) : (
                                             <span className="text-blue-600 font-bold">
                                                 {language === 'hu' 
-                                                ? `🔄 A rendelésed a meglévő "${targetTracker?.name}" profiljához lesz rendelve új skinként.` 
-                                                : `🔄 This order will be added as a new skin to your existing "${targetTracker?.name}" profile.`}
+                                                ? `🔄 Ez az új "${selectedSkinId}" skin a meglévő "${targetTracker?.name}" profilodhoz lesz adva.` 
+                                                : `🔄 This new "${selectedSkinId}" skin will be added to your existing "${targetTracker?.name}" profile.`}
                                             </span>
                                         )}
                                     </div>
                                 </div>
                                 <button 
                                     onClick={() => setIsFlipped(true)} 
-                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl"
+                                    className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl mt-4"
                                 >
                                     {language === 'hu' ? 'Méretválasztás →' : 'Select Size →'}
                                 </button>
