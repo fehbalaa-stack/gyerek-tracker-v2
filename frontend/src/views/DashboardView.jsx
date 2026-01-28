@@ -14,7 +14,6 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
 
   const [orderCount, setOrderCount] = useState(0);
 
-  // 🔥 Rendelések számának lekérése a statisztikához
   useEffect(() => {
     const fetchOrderCount = async () => {
       try {
@@ -175,93 +174,82 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
             {language === 'hu' ? 'Válaszd ki az eszközöd' : 'Select your device'}
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
             {trackers.slice(0, 10).map((tracker) => (
-              <div key={tracker._id} className="relative w-full h-[180px] perspective-1000 group cursor-pointer">
-                <motion.div
-                  className="w-full h-full relative preserve-3d"
-                  whileHover={{ rotateY: 180 }}
-                  transition={{ 
-                    duration: 1.2,
-                    type: "spring", 
-                    stiffness: 45, 
-                    damping: 20 
-                  }}
-                >
-                  {/* ELŐLAP */}
-                  <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 rounded-[2.5rem] p-6 flex items-center gap-5 shadow-sm transition-all group-hover:border-emerald-200 overflow-hidden">
-                    <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
-                        <img 
-                          src={`https://oovoo-backend.onrender.com/schemes/${tracker.qrStyle || 'classic'}.png`}
-                          alt="Template"
-                          className="absolute inset-0 w-full h-full object-contain p-2 z-10"
-                          onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'}
-                        />
-                        <div className="absolute inset-0 bg-slate-50 z-0"></div>
-                    </div>
-
-                    <div className="flex-1 overflow-hidden text-left">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xl shrink-0">{tracker.icon || "📍"}</span>
-                        <h3 className="font-black text-lg text-slate-800 tracking-tight truncate">{tracker.name}</h3>
-                      </div>
-                      
-                      {/* 🔥 JAVÍTOTT STÍLUS VÁLASZTÓ - STOPPROPAGATION HOZZÁADVA */}
-                      {tracker.skins && tracker.skins.length > 0 && (
-                        <div 
-                          className="flex gap-1.5 my-2 overflow-x-auto no-scrollbar py-1 relative z-50"
-                          onMouseEnter={(e) => e.stopPropagation()} 
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              onUpdateTracker(tracker._id, { qrStyle: 'classic' }); 
-                            }}
-                            className={`w-5 h-5 rounded-full border-2 transition-all ${tracker.qrStyle === 'classic' || !tracker.qrStyle ? 'border-emerald-500 scale-110 shadow-sm' : 'border-slate-200 opacity-40 hover:opacity-100'}`}
-                            style={{ backgroundColor: '#f1f5f9' }}
-                            title="Classic"
+              <div key={tracker._id} className="flex flex-col gap-4">
+                <div className="relative w-full h-[180px] perspective-1000 group cursor-pointer">
+                  <motion.div
+                    className="w-full h-full relative preserve-3d"
+                    whileHover={{ rotateY: 180 }}
+                    transition={{ 
+                      duration: 1.2,
+                      type: "spring", 
+                      stiffness: 45, 
+                      damping: 20 
+                    }}
+                  >
+                    {/* ELŐLAP */}
+                    <div className="absolute inset-0 backface-hidden bg-white border border-emerald-50 rounded-[2.5rem] p-6 flex items-center gap-5 shadow-sm transition-all group-hover:border-emerald-200 overflow-hidden">
+                      <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
+                          <img 
+                            src={`https://oovoo-backend.onrender.com/schemes/${tracker.qrStyle || 'classic'}.png`}
+                            alt="Template"
+                            className="absolute inset-0 w-full h-full object-contain p-2 z-10"
+                            onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'}
                           />
-                          {tracker.skins.map((skin, sIdx) => (
-                            <button 
-                              key={sIdx}
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
-                                onUpdateTracker(tracker._id, { qrStyle: skin.styleId }); 
-                              }}
-                              className={`w-5 h-5 rounded-full border-2 transition-all ${tracker.qrStyle === skin.styleId ? 'border-emerald-500 scale-110 shadow-sm' : 'border-slate-200 opacity-40 hover:opacity-100'}`}
-                              style={{ 
-                                backgroundImage: `url(https://oovoo-backend.onrender.com/schemes/${skin.styleId}.png)`,
-                                backgroundSize: 'cover'
-                              }}
-                              title={skin.styleId}
-                            />
-                          ))}
+                          <div className="absolute inset-0 bg-slate-50 z-0"></div>
+                      </div>
+
+                      <div className="flex-1 overflow-hidden text-left">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl shrink-0">{tracker.icon || "📍"}</span>
+                          <h3 className="font-black text-lg text-slate-800 tracking-tight truncate">{tracker.name}</h3>
                         </div>
-                      )}
-
-                      <div className="mt-1 text-[9px] text-slate-300 font-black uppercase tracking-widest truncate">ID: {tracker.uniqueCode}</div>
-                    </div>
-                  </div>
-
-                  {/* HÁTLAP */}
-                  <div className="absolute inset-0 backface-hidden bg-slate-900 border border-emerald-400/30 rounded-[2.5rem] flex flex-col items-center justify-center p-6 shadow-xl" style={{ transform: "rotateY(180deg)" }}>
-                    <div className="bg-white p-3 rounded-2xl shadow-lg mb-4 opacity-90 scale-90 group-hover:scale-100 transition-transform duration-700">
-                      <div className="w-16 h-16 bg-white rounded flex items-center justify-center overflow-hidden">
-                        <QRCodeSVG value={`https://oovoo-backend.onrender.com/scan/${tracker.uniqueCode}`} size={64} level={"H"} fgColor="#059669" includeMargin={false} />
+                        <div className="mt-1 text-[9px] text-slate-300 font-black uppercase tracking-widest truncate">ID: {tracker.uniqueCode}</div>
                       </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); setMode('manage', { highlightId: tracker._id }); }} className="w-full py-3 bg-emerald-600 text-white text-[9px] font-black uppercase rounded-2xl hover:bg-emerald-500 transition-all shadow-lg">{language === 'hu' ? 'Eszköz kezelése' : 'Manage Device'}</button>
+
+                    {/* HÁTLAP */}
+                    <div className="absolute inset-0 backface-hidden bg-slate-900 border border-emerald-400/30 rounded-[2.5rem] flex flex-col items-center justify-center p-6 shadow-xl" style={{ transform: "rotateY(180deg)" }}>
+                      <div className="bg-white p-3 rounded-2xl shadow-lg mb-4 opacity-90 scale-90 group-hover:scale-100 transition-transform duration-700">
+                        <div className="w-16 h-16 bg-white rounded flex items-center justify-center overflow-hidden">
+                          <QRCodeSVG value={`https://oovoo-backend.onrender.com/scan/${tracker.uniqueCode}`} size={64} level={"H"} fgColor="#059669" includeMargin={false} />
+                        </div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setMode('manage', { highlightId: tracker._id }); }} className="w-full py-3 bg-emerald-600 text-white text-[9px] font-black uppercase rounded-2xl hover:bg-emerald-500 transition-all shadow-lg">{language === 'hu' ? 'Eszköz kezelése' : 'Manage Device'}</button>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* 🔥 STÍLUS VÁLASZTÓ A KÁRTYA ALATT - FIXEN LÁTHATÓ */}
+                {tracker.skins && tracker.skins.length > 0 && (
+                  <div className="flex items-center justify-center gap-3 px-4 py-2.5 bg-slate-50/80 border border-slate-100 rounded-2xl backdrop-blur-sm self-center shadow-sm">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mr-1">Style</span>
+                    <button 
+                      onClick={() => onUpdateTracker(tracker._id, { qrStyle: 'classic' })}
+                      className={`w-6 h-6 rounded-full border-2 transition-all ${tracker.qrStyle === 'classic' || !tracker.qrStyle ? 'border-emerald-500 scale-110 shadow-sm' : 'border-white opacity-40 hover:opacity-100'}`}
+                      style={{ backgroundColor: '#e2e8f0' }}
+                    />
+                    {tracker.skins.map((skin, sIdx) => (
+                      <button 
+                        key={sIdx}
+                        onClick={() => onUpdateTracker(tracker._id, { qrStyle: skin.styleId })}
+                        className={`w-6 h-6 rounded-full border-2 transition-all ${tracker.qrStyle === skin.styleId ? 'border-emerald-500 scale-110 shadow-md' : 'border-white opacity-40 hover:opacity-100'}`}
+                        style={{ 
+                          backgroundImage: `url(https://oovoo-backend.onrender.com/schemes/${skin.styleId}.png)`,
+                          backgroundSize: 'cover'
+                        }}
+                      />
+                    ))}
                   </div>
-                </motion.div>
+                )}
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* ALSÓ KÁRTYÁK - MARADNAK VÁLTOZATLANUL */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10">
         <div onClick={() => setMode('shop')} className="bg-white border border-emerald-50 p-8 rounded-[2rem] hover:border-emerald-200 transition-all shadow-sm cursor-pointer group h-full">
           <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl mb-4 border border-emerald-100/50">🛒</div>
           <h3 className="text-xl font-bold mb-2 text-slate-800 tracking-tight">Webshop</h3>
@@ -281,7 +269,6 @@ export default function DashboardView({ trackers, setMode, onTrackerAdded, onUpd
         </div>
       </section>
 
-      {/* MODAL - MARAD VÁLTOZATLANUL */}
       <AnimatePresence>
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
