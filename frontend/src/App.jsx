@@ -14,7 +14,7 @@ import AdminOrdersView  from './views/AdminOrdersView';
 import CartView  from './views/CartView';
 import PublicTrackerView from './views/PublicTrackerView'; 
 import LegalView  from './views/LegalView'; 
-import MyOrdersView from './views/MyOrdersView'; // 🔥 ÚJ IMPORT
+import MyOrdersView from './views/MyOrdersView'; 
 
 // Kiemelt V3 nézetek
 import DashboardViewV3 from './views/DashboardView'; 
@@ -35,13 +35,12 @@ function AppContent() {
   const [selectedTrackerId, setSelectedTrackerId] = useState(null);
   const [cart, setCart] = useState([]);
 
-  // 🔥 STRIPE VISSZATÉRÉS ÉS JOGI ÚTVONALAK KEZELÉSE
   useEffect(() => {
     const path = window.location.pathname;
     
     if (path === '/success') {
       setMode('success');
-      setCart([]); // Kosár ürítése sikeres fizetés után
+      setCart([]); 
       window.history.replaceState({}, '', '/');
     } else if (path === '/cancel') {
       setMode('shop');
@@ -171,7 +170,6 @@ function AppContent() {
           <div key={`content-${language}`} className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full">
             <div className="container mx-auto px-4 py-10 max-w-7xl">
               
-              {/* SIKERES FIZETÉS ÜZENET */}
               {mode === 'success' && (
                 <div className="flex flex-col items-center justify-center py-20 text-center animate-in zoom-in duration-500">
                   <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-emerald-100/50">
@@ -190,7 +188,17 @@ function AppContent() {
                 </div>
               )}
 
-              {mode === 'dashboard' && <DashboardViewV3 user={user} trackers={trackers} setMode={handleSetMode} onTrackerAdded={handleTrackerAdded} />}
+              {/* 🔥 ITT VOLT A HIBA: onUpdateTracker HOZZÁADVA */}
+              {mode === 'dashboard' && (
+                <DashboardViewV3 
+                  user={user} 
+                  trackers={trackers} 
+                  setMode={handleSetMode} 
+                  onTrackerAdded={handleTrackerAdded} 
+                  onUpdateTracker={handleUpdateTracker} 
+                />
+              )}
+
               {mode === 'settings' && <ProfileViewV3 user={user} />}
               {mode === 'manage' && <TrackersView trackers={trackers} onDelete={handleDeleteTracker} onUpdate={handleUpdateTracker} />}
               {mode === 'map' && <MapView trackers={trackers} logs={logs} />} 
@@ -210,7 +218,6 @@ function AppContent() {
       
       {!isScanPath && <Footer setMode={handleSetMode} />}
 
-      {/* Háttér dekoráció */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-50 rounded-full blur-[120px] opacity-40"></div>
         <div className="absolute -bottom-[10%] -right-[10%] w-[30%] h-[30%] bg-emerald-50 rounded-full blur-[100px] opacity-30"></div>
