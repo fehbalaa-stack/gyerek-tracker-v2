@@ -24,6 +24,32 @@ const AdminSkinManager = () => {
         fetchSkins();
     }, []);
 
+    // 🔥 ÚJ: Törlés funkció
+    const handleDelete = async (skinId) => {
+        if (!window.confirm(`Biztosan törlöd a(z) "${skinId}" design-t?`)) return;
+
+        try {
+            const stored = localStorage.getItem('oooVooo_user');
+            const token = JSON.parse(stored)?.token;
+
+            const res = await fetch(`https://oovoo-backend.onrender.com/api/schemes/${skinId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                toast.success("Skin sikeresen törölve!");
+                fetchSkins(); // Lista frissítése
+            } else {
+                toast.error(data.message || "Törlési hiba");
+            }
+        } catch (err) {
+            toast.error("Hiba a szerverrel való kapcsolatban");
+        }
+    };
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -152,7 +178,20 @@ const AdminSkinManager = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {skins.map((skin) => (
                         <div key={skin.id} className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex flex-col items-center group relative shadow-sm">
-                            <img src={`https://oovoo-backend.onrender.com/schemes/${skin.id}.png`} className="w-16 h-16 object-contain mb-3" alt={skin.name} onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'} />
+                            {/* 🔥 Törlés gomb */}
+                            <button 
+                                onClick={() => handleDelete(skin.id)}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10 hover:bg-red-600"
+                            >
+                                ✕
+                            </button>
+                            
+                            <img 
+                                src={`https://oovoo-backend.onrender.com/schemes/${skin.id}.png`} 
+                                className="w-16 h-16 object-contain mb-3" 
+                                alt={skin.name} 
+                                onError={(e) => e.target.src = 'https://oovoo-backend.onrender.com/schemes/classic.png'} 
+                            />
                             <p className="text-[9px] font-black text-slate-800 uppercase text-center truncate w-full">{skin.name}</p>
                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">{skin.category}</span>
                         </div>

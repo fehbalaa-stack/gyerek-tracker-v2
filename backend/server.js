@@ -99,6 +99,24 @@ app.post('/api/schemes/add', authMiddleware, adminMiddleware, upload.single('ima
   }
 });
 
+// 🔥 ÚJ: SKIN TÖRLÉSE ADMINOKNAK
+app.delete('/api/schemes/:id', authMiddleware, adminMiddleware, (req, res) => {
+  try {
+    const skinId = req.params.id;
+    const filePath = path.join(__dirname, 'public/schemes', `${skinId}.png`);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      res.json({ success: true, message: 'Skin fájl sikeresen törölve!' });
+    } else {
+      res.status(404).json({ success: false, message: 'A fájl nem található a szerveren.' });
+    }
+  } catch (error) {
+    console.error("Törlési hiba:", error);
+    res.status(500).json({ success: false, message: 'Szerver hiba a törlés során.' });
+  }
+});
+
 app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { uniqueCode } = req.params;
