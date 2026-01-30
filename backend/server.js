@@ -6,6 +6,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import multer from 'multer'; // 🔥 Új import a fájlfeltöltéshez
 
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -27,8 +28,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 
+// --- MULTER KONFIGURÁCIÓ SKINEKHEZ ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'public/schemes');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    // A fájlnév a küldött ID lesz (pl. animals_dogv2.png)
+    const skinId = req.body.id || 'temp_' + Date.now();
+    cb(null, `${skinId}.png`);
+  }
+});
+const upload = multer({ storage });
+
 // --- KONFIGURÁCIÓ ---
-// Hozzáadtuk a metódusokat és a pontosabb origókat a 200 OK/Catch hiba elkerülésére
 const allowedOrigins = [
   "https://oovoo-backend.onrender.com", 
   "http://localhost:5173"
@@ -36,7 +51,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Engedélyezzük, ha az origin benne van a listában, vagy ha nincs origin (pl. mobil/azonos szerver kérés)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -48,14 +62,12 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// --- SOCKET.IO BEÁLLÍTÁS ---
 const io = new Server(server, {
   cors: corsOptions
 });
 
 app.use(cors(corsOptions));
 
-// Req.io átadása a route-oknak
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -63,7 +75,6 @@ app.use((req, res, next) => {
 
 connectDB();
 
-// STRIPE WEBHOOK (express.json előtt kötelező)
 app.post(
   '/api/orders/webhook', 
   express.raw({ type: 'application/json' }), 
@@ -72,11 +83,21 @@ app.post(
 
 app.use(express.json());
 
-// STATIKUS FÁJLOK (Sémák, QR kódok)
 app.use('/schemes', express.static(path.join(__dirname, 'public/schemes')));
 app.use('/qrcodes', express.static(path.join(__dirname, 'public/qrcodes')));
 
 // --- ADMIN & API FUNKCIÓK ---
+
+// 🔥 ÚJ: SKIN FELTÖLTÉSE ADMINOKNAK
+app.post('/api/schemes/add', authMiddleware, adminMiddleware, upload.single('image'), (req, res) => {
+  try {
+    // A multer már elmentette a fájlt a public/schemes mappába az ID alapján.
+    res.json({ success: true, message: 'Skin sikeresen feltöltve és publikálva!' });
+  } catch (error) {
+    console.error("Skin feltöltési hiba:", error);
+    res.status(500).json({ success: false, message: 'Hiba a fájl mentésekor.' });
+  }
+});
 
 app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -129,21 +150,13 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes); 
 app.use('/api/logs', logRoutes); 
 
-// --- FRONTEND KISZOLGÁLÁSA (PRODUCTION) ---
 if (process.env.NODE_ENV === 'production') {
-  // Javított path: Renderen a gyökérből indulva keressük a dist-et
   const frontendPath = path.join(__dirname, '..', 'frontend', 'dist');
-  
-  console.log("📂 Frontend path ellenőrzése:", frontendPath);
-
   app.use(express.static(frontendPath));
-
   app.get('*', (req, res) => {
-    // Ha API hívás tévedt ide, ne küldjük vissza az index.html-t (ez okozza a catch hibát!)
     if (req.originalUrl.startsWith('/api')) {
         return res.status(404).json({ message: "API endpoint not found" });
     }
-    
     const indexPath = path.join(frontendPath, 'index.html');
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
@@ -153,25 +166,19 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// --- SOCKET ESEMÉNYEK ---
 io.on('connection', (socket) => {
   console.log('📡 Socket connected:', socket.id);
-
   socket.on('join_chat', (trackerId) => {
     if (!trackerId) return;
     const room = trackerId.toString();
     socket.join(room);
-    console.log(`🏠 User ${socket.id} belépett a ${room} szobába`);
   });
-
   socket.on('send_message', (data) => {
     if (data.trackerId) {
       const room = data.trackerId.toString();
       io.to(room).emit('receive_message', data);
-      console.log(`✉️ Üzenet továbbítva a ${room} szobába`);
     }
   });
-
   socket.on('disconnect', () => {
     console.log('❌ Socket disconnected:', socket.id);
   });

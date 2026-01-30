@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import AdminMessages from '../components/AdminMessages'; 
+import AdminSkinManager from '../components/AdminSkinManager'; // 🔥 Új import
 
 const AdminView = () => {
     const [logs, setLogs] = useState([]);
@@ -33,14 +34,14 @@ const AdminView = () => {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Admin <span className="text-emerald-600 font-black">Panel</span>
                     </h1>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold mt-1">Rendszerfelügyelet és Üzenetek</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold mt-1">Rendszerfelügyelet és Design Kezelés</p>
                 </div>
 
-                {/* Tab váltó - Modern lekerekített kapszula */}
+                {/* Tab váltó - Kibővítve a Skinekkel */}
                 <div className="flex gap-1 bg-slate-100 p-1.5 rounded-[2rem] border border-slate-200">
                     <button 
                         onClick={() => setActiveTab('logs')}
-                        className={`px-8 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
+                        className={`px-6 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
                             activeTab === 'logs' 
                             ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' 
                             : 'text-slate-400 hover:text-slate-600'
@@ -50,7 +51,7 @@ const AdminView = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab('messages')}
-                        className={`px-8 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
+                        className={`px-6 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
                             activeTab === 'messages' 
                             ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' 
                             : 'text-slate-400 hover:text-slate-600'
@@ -58,12 +59,22 @@ const AdminView = () => {
                     >
                         Üzenetek
                     </button>
+                    <button 
+                        onClick={() => setActiveTab('skins')}
+                        className={`px-6 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
+                            activeTab === 'skins' 
+                            ? 'bg-white text-emerald-600 shadow-sm border border-emerald-50' 
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                    >
+                        🎨 Skinek
+                    </button>
                 </div>
             </div>
 
             {/* Tartalom kártya */}
             <div className="bg-white border border-emerald-50 rounded-[2.5rem] p-8 shadow-sm">
-                {activeTab === 'logs' ? (
+                {activeTab === 'logs' && (
                     <div className="overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-y-2">
                             <thead>
@@ -95,9 +106,12 @@ const AdminView = () => {
                             </div>
                         )}
                     </div>
-                ) : (
-                    <AdminMessages /> 
                 )}
+                
+                {activeTab === 'messages' && <AdminMessages />} 
+                
+                {/* 🔥 ÚJ TAB: Skin Manager */}
+                {activeTab === 'skins' && <AdminSkinManager />}
             </div>
         </div>
     );
