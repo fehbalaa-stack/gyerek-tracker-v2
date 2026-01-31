@@ -1,1 +1,4 @@
 node_modules/
+Kesz_Kartyak/
+__pycache__/
+.DS_Store
