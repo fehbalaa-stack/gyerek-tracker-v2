@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
 import { createCanvas, loadImage } from 'canvas';
 import path from 'path';
+import fs from 'fs'; // Szükséges a fájlrendszer ellenőrzéséhez
 
 /**
  * Összeállítja a stílusos QR kódot: Alap QR + PNG maszk
@@ -30,17 +31,21 @@ export const generateStyledQR = async (text, styleId, isPreview = true) => {
         ctx.drawImage(qrCanvas, 0, 0);
 
         // 2. ILLUSZTRÁLT SÉMA RÁHELYEZÉSE (PNG MASZK)
-        // A path.join(__dirname, ...) helyett relatív útvonalat használunk, 
-        // de a process.cwd() biztosítja, hogy a gyökérkönyvtárból induljon a keresés.
         try {
-            const schemePath = path.join(process.cwd(), 'public', 'schemes', `${styleId}.png`);
+            // Először megpróbáljuk a gyökérben
+            let schemePath = path.join(process.cwd(), 'public', 'schemes', `${styleId}.png`);
+            
+            // Ha ott nem létezik, megnézzük a backend mappán belül is
+            if (!fs.existsSync(schemePath)) {
+                schemePath = path.join(process.cwd(), 'backend', 'public', 'schemes', `${styleId}.png`);
+            }
+
             const schemeImage = await loadImage(schemePath);
             
             // "Összesütés": rátesszük a skint a QR kódra
             ctx.drawImage(schemeImage, 0, 0, canvasSize, canvasSize);
         } catch (err) {
             console.warn(`⚠️ Séma nem található vagy hiba a betöltéskor: ${styleId}.png`);
-            // Ha nincs skin, még visszaadjuk a sima QR-t, hogy ne haljon meg a rendszer
         }
 
         // 3. VÍZJEL (Csak előnézethez)
