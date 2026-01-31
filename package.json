@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "canvas": "^3.2.1",
     "nanoid": "^5.1.6",
     "qrcode": "^1.5.4"
   },

@@ -6,7 +6,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import multer from 'multer'; // 🔥 Új import a fájlfeltöltéshez
+import multer from 'multer';
 
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -36,7 +36,6 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    // A fájlnév a küldött ID lesz (pl. animals_dogv2.png)
     const skinId = req.body.id || 'temp_' + Date.now();
     cb(null, `${skinId}.png`);
   }
@@ -88,10 +87,8 @@ app.use('/qrcodes', express.static(path.join(__dirname, 'public/qrcodes')));
 
 // --- ADMIN & API FUNKCIÓK ---
 
-// 🔥 ÚJ: SKIN FELTÖLTÉSE ADMINOKNAK
 app.post('/api/schemes/add', authMiddleware, adminMiddleware, upload.single('image'), (req, res) => {
   try {
-    // A multer már elmentette a fájlt a public/schemes mappába az ID alapján.
     res.json({ success: true, message: 'Skin sikeresen feltöltve és publikálva!' });
   } catch (error) {
     console.error("Skin feltöltési hiba:", error);
@@ -99,12 +96,10 @@ app.post('/api/schemes/add', authMiddleware, adminMiddleware, upload.single('ima
   }
 });
 
-// 🔥 ÚJ: SKIN TÖRLÉSE ADMINOKNAK
 app.delete('/api/schemes/:id', authMiddleware, adminMiddleware, (req, res) => {
   try {
     const skinId = req.params.id;
     const filePath = path.join(__dirname, 'public/schemes', `${skinId}.png`);
-
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       res.json({ success: true, message: 'Skin fájl sikeresen törölve!' });
@@ -117,12 +112,27 @@ app.delete('/api/schemes/:id', authMiddleware, adminMiddleware, (req, res) => {
   }
 });
 
+// 🔥 ÚJ: ELŐNÉZET GENERÁLÁSA (Vízjellel)
+app.get('/api/admin/generate-preview/:uniqueCode', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { uniqueCode } = req.params;
+    const { styleId } = req.query;
+    const scanUrl = `https://oovoo-backend.onrender.com/scan/${uniqueCode}`;
+    const buffer = await generateStyledQR(scanUrl, styleId, true); // true = isPreview
+    res.type('image/png').send(buffer);
+  } catch (error) {
+    console.error("Preview hiba:", error);
+    res.status(500).send('Hiba a preview generálásakor');
+  }
+});
+
+// TISZTA GENERÁLÁS (Vízjel nélkül, nyomtatáshoz)
 app.get('/api/admin/generate-clean/:uniqueCode', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { uniqueCode } = req.params;
     const { styleId } = req.query;
     const scanUrl = `https://oovoo-backend.onrender.com/scan/${uniqueCode}`;
-    const buffer = await generateStyledQR(scanUrl, styleId, false);
+    const buffer = await generateStyledQR(scanUrl, styleId, false); // false = isPreview
     res.setHeader('Content-Disposition', `attachment; filename=PROD_${uniqueCode}.png`);
     res.type('image/png').send(buffer);
   } catch (error) {
